@@ -135,7 +135,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		if (Phase == REFRESH_PHASE_AFTER_TAGS) {
 			// Draw the tag
 
-			Tag t = Tag(AcState, isDetailed, IsSoft, radarTarget);
+			Tag t = Tag(AcState, isDetailed, IsSoft, this, radarTarget, CheatFlightPlan);
 
 			// Getting the tag center
 			if (TagOffsets.find(radarTarget.GetCallsign()) == TagOffsets.end())

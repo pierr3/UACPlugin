@@ -85,8 +85,10 @@ public:
 			// For each item
 			CSize MeasureRect = { 0, 0 };
 			for (auto TagItem : TagLine) {
-				if (TagItem.TagType == "Callsign")
+
+				if (TagItem.TagType == "Callsign") {
 					dc->SetTextColor(SecondaryColor);
+				}
 					
 				MeasureRect = dc->GetTextExtent(TagItem.Text.c_str());
 				
@@ -111,7 +113,12 @@ public:
 					NeedPrimaryAreaSet = false;
 				}
 
-				leftOffset += (int)MeasureRect.cx + 5;
+				
+				leftOffset += (int)MeasureRect.cx;
+
+				// We don't need a blank space if it's one of the empty items
+				if (TagItem.Text != " ")
+					leftOffset += 5;
 			}
 			topOffset += (int)MeasureRect.cy;
 
