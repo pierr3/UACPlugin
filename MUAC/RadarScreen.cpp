@@ -13,7 +13,6 @@ RadarScreen::RadarScreen()
 
 RadarScreen::~RadarScreen()
 {
-	
 }
 
 void RadarScreen::LoadAllData()
@@ -141,7 +140,9 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			if (TagOffsets.find(radarTarget.GetCallsign()) == TagOffsets.end())
 				TagOffsets[radarTarget.GetCallsign()] = { 25, -50 };
 
-			RECT r = TagRenderer::Render(&dc, MousePoint, TagOffsets[radarTarget.GetCallsign()], radarTargetPoint, t, isDetailed);
+			map<int, CRect> DetailedTagData;
+
+			RECT r = TagRenderer::Render(&dc, MousePoint, TagOffsets[radarTarget.GetCallsign()], radarTargetPoint, t, isDetailed, &DetailedTagData);
 
 			RECT SymbolArea = { radarTargetPoint.x - DRAWING_AC_SQUARE_SYMBOL_SIZE, radarTargetPoint.y - DRAWING_AC_SQUARE_SYMBOL_SIZE,
 				radarTargetPoint.x + DRAWING_AC_SQUARE_SYMBOL_SIZE, radarTargetPoint.y + DRAWING_AC_SQUARE_SYMBOL_SIZE };
@@ -152,6 +153,13 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 			// We add the screen rect
 			AddScreenObject(SCREEN_TAG, radarTarget.GetCallsign(), r, true, "");
+
+			// If detailed we add the screen objects 
+			if (isDetailed) {
+				for (auto kv : DetailedTagData) {
+					AddScreenObject(kv.first, radarTarget.GetCallsign(), kv.second, false, "");
+				}
+			}
 		}
 
 #pragma endregion
@@ -189,7 +197,6 @@ void RadarScreen::OnOverScreenObject(int ObjectType, const char * sObjectId, POI
 {
 	if (ObjectType == SCREEN_TAG || ObjectType == SCREEN_AC_SYMBOL) {
 		DetailedTag = sObjectId;
-		//StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
 	}
 	
@@ -249,6 +256,62 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		}
 	}
 
+	// Tag clicks
+	if (ObjectType >= 700) {
+		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+		
+		CFlightPlan fp = GetPlugIn()->FlightPlanSelectASEL();
+
+		int FunctionId = EuroScopePlugIn::TAG_ITEM_FUNCTION_NO;
+
+		if (ObjectType == SCREEN_TAG_CALLSIGN) {
+			if (Button == BUTTON_LEFT)
+				FunctionId = TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU;
+			if (Button == BUTTON_RIGHT)
+				FunctionId = TAG_ITEM_FUNCTION_COMMUNICATION_POPUP;
+		}
+
+		if (ObjectType == SCREEN_TAG_SECTOR)
+			FunctionId = TAG_ITEM_FUNCTION_ASSIGNED_NEXT_CONTROLLER;
+
+		if (ObjectType == SCREEN_TAG_ROUTE)
+			FunctionId = TAG_ITEM_FUNCTION_TOGGLE_PREDICTION_DRAW;
+
+		if (ObjectType == SCREEN_TAG_CFL)
+			FunctionId = TAG_ITEM_FUNCTION_TEMP_ALTITUDE_POPUP;
+
+		if (ObjectType == SCREEN_TAG_HORIZ) {
+			if (Button == BUTTON_LEFT)
+				FunctionId = TAG_ITEM_FUNCTION_NEXT_ROUTE_POINTS_POPUP;
+			if (Button == BUTTON_RIGHT)
+				FunctionId = TAG_ITEM_FUNCTION_ASSIGNED_HEADING_POPUP;
+		}
+		
+		if (ObjectType == SCREEN_TAG_RFL)
+			FunctionId = TAG_ITEM_FUNCTION_RFL_POPUP;
+
+		if (ObjectType == SCREEN_TAG_XFL) {
+			if (fp.GetTrackingControllerIsMe()) {
+				FunctionId = TAG_ITEM_FUNCTION_COPX_ALTITUDE;
+			}
+			else {
+				FunctionId = TAG_ITEM_FUNCTION_COPN_ALTITUDE;
+			}
+		}
+
+		if (ObjectType == SCREEN_TAG_COP) {
+			if (fp.GetTrackingControllerIsMe()) {
+				FunctionId = TAG_ITEM_FUNCTION_COPX_NAME;
+			}
+			else {
+				FunctionId = TAG_ITEM_FUNCTION_COPN_NAME;
+			}
+		}
+
+		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL, 
+			FunctionId, Pt, Area);
+	}
+
 	MousePoint = Pt;
 	RequestRefresh();
 }
@@ -273,5 +336,12 @@ void RadarScreen::OnFunctionCall(int FunctionId, const char * sItemString, POINT
 	if (FunctionId == FUNC_FILTER_HARD_HIGH) {
 		RadarFilters.Hard_High = atoi(sItemString) * 100;
 		LoadFilterButtonsData();
+	}
+}
+
+void RadarScreen::OnDoubleClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
+{
+	if (ObjectType == SCREEN_TAG_CALLSIGN && Button == BUTTON_LEFT) {
+		StartTagFunction(sObjectId, NULL, TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL, TAG_ITEM_FUNCTION_TAKE_HANDOFF, Pt, Area);
 	}
 }

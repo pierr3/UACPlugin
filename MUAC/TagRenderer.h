@@ -12,7 +12,7 @@ using namespace Gdiplus;
 
 class TagRenderer {
 public:
-	static RECT Render(CDC* dc, POINT MousePt, POINT TagOffset, POINT AcPosition, Tag tag, bool isDetailed) {
+	static RECT Render(CDC* dc, POINT MousePt, POINT TagOffset, POINT AcPosition, Tag tag, bool isDetailed, map<int, CRect>* DetailedTagClicks) {
 		
 		vector<vector<TagItem>> Definition = tag.Definition;
 
@@ -86,8 +86,16 @@ public:
 			CSize MeasureRect = { 0, 0 };
 			for (auto TagItem : TagLine) {
 
-				if (TagItem.TagType == "Callsign") {
+				if (TagItem.Text.length() == 0)
+					continue;
+
+				if (TagItem.ColourType == TagItem::TagColourTypes::Highlight) {
 					dc->SetTextColor(SecondaryColor);
+				}
+
+				if (TagItem.Text.compare(0, PREFIX_PURPLE_COLOR.length(), PREFIX_PURPLE_COLOR) == 0) {
+					dc->SetTextColor(Colours::PurpleDisplay.ToCOLORREF());
+					TagItem.Text.erase(0, PREFIX_PURPLE_COLOR.length());
 				}
 					
 				MeasureRect = dc->GetTextExtent(TagItem.Text.c_str());
@@ -105,16 +113,18 @@ public:
 					dc->Rectangle(TextBox);
 				}
 
-				if (TagItem.TagType == "Callsign")
-					dc->SetTextColor(PrimaryColor);
+				// if Detailed, then we store the area for click
+				if (isDetailed && TagItem.ClickId != 0)
+					DetailedTagClicks->insert(pair<int, CRect>(TagItem.ClickId, TextBox));
+				
 
 				if (NeedPrimaryAreaSet && TagItem.Text != " ") {
 					PrimaryArea = TextBox;
 					NeedPrimaryAreaSet = false;
 				}
 
-				
 				leftOffset += (int)MeasureRect.cx;
+				dc->SetTextColor(PrimaryColor);
 
 				// We don't need a blank space if it's one of the empty items
 				if (TagItem.Text != " ")

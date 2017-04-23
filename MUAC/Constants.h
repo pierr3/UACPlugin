@@ -12,6 +12,8 @@ const string PLUGIN_COPY = "GPL v3";
 
 #define MUAC_RADAR_SCREEN_VIEW "MUAC Radar Screen"
 
+const string PREFIX_PURPLE_COLOR = "_/";
+
 const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;
 
@@ -49,11 +51,24 @@ const int BUTTON_VEL8 = 418;
 
 const int BUTTON_DOTS = 419;
 
+// Clickable tag items
+
+const int SCREEN_TAG_CALLSIGN = 701;
+const int SCREEN_TAG_SECTOR = 702;
+const int SCREEN_TAG_ROUTE = 703;
+const int SCREEN_TAG_CFL = 704;
+const int SCREEN_TAG_HORIZ = 705;
+const int SCREEN_TAG_RFL = 706;
+const int SCREEN_TAG_XFL = 707;
+const int SCREEN_TAG_COP = 708;
+
 // Functions
 const int FUNC_FILTER_HARD_LOW = BUTTON_FILTER_HARD_LOW;
 const int FUNC_FILTER_SOFT_LOW = BUTTON_FILTER_SOFT_LOW;
 const int FUNC_FILTER_SOFT_HIGH = BUTTON_FILTER_SOFT_HIGH;
 const int FUNC_FILTER_HARD_HIGH = BUTTON_FILTER_HARD_HIGH;
+
+ 
 
 const enum AircraftStates {
 	NOT_CONCERNED, NOTIFIED, CONCERNED, TRANSFERRED, ASSUMED

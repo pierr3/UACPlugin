@@ -9,6 +9,7 @@ namespace Colours {
 	const Color AircraftLightGrey(165, 165, 165);
 	const Color AircraftDarkGrey(79, 79, 79);
 	const Color YellowWarning(167, 167, 0);
+	const Color PurpleDisplay(235, 0, 201);
 
 	const Color YellowHighlight(255, 255, 0);
 	

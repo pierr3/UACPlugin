@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include "Helper.h"
+#include "Constants.h"
 #include "TagItem.h"
 #include "EuroScopePlugIn.h"
 
@@ -18,35 +19,35 @@ public:
 	const enum TagStates { NotConcerned, InSequence, Next, TransferredToMe, Assumed, TransferredFromMe, Redundant };
 
 	// TagItems Definition
-	TagItem CallsignItem = TagItem::CreatePassive("Callsign");
+	TagItem CallsignItem = TagItem::CreatePassive("Callsign", SCREEN_TAG_CALLSIGN, TagItem::TagColourTypes::Highlight);
 	TagItem SquawkItem = TagItem::CreatePassive("Squawk");
 	TagItem AltitudeItem = TagItem::CreatePassive("Altitude");
 	TagItem TendencyItem = TagItem::CreatePassive("Tendency");
 
 	// CFL
-	TagItem CFLItem = TagItem::CreatePassive("CFL");
+	TagItem CFLItem = TagItem::CreatePassive("CFL", SCREEN_TAG_CFL);
 	// Combination of NFL and XFL, depending on the state
-	TagItem XFLItem = TagItem::CreatePassive("XFL");
+	TagItem XFLItem = TagItem::CreatePassive("XFL", SCREEN_TAG_XFL);
 	// RFL
-	TagItem RFLItem = TagItem::CreatePassive("RFL");
+	TagItem RFLItem = TagItem::CreatePassive("RFL", SCREEN_TAG_RFL);
 	// COPX/COPN Point Item
-	TagItem COPItem = TagItem::CreatePassive("COP");
+	TagItem COPItem = TagItem::CreatePassive("COP", SCREEN_TAG_COP);
 	// Lateral clearance (Direct/HDG)
-	TagItem HorizontalClearItem = TagItem::CreatePassive("HDG");
+	TagItem HorizontalClearItem = TagItem::CreatePassive("HDG", SCREEN_TAG_HORIZ);
 	// Current or next sector
-	TagItem SectorItem = TagItem::CreatePassive("Sector");
+	TagItem SectorItem = TagItem::CreatePassive("Sector", SCREEN_TAG_SECTOR);
 
 	TagItem ReportedGS = TagItem::CreatePassive("ReportedGS");
 	TagItem VerticalRate = TagItem::CreatePassive("VerticalRate");
 
-	TagItem RouteDisplay = TagItem::CreatePassive("R");
+	TagItem RouteDisplay = TagItem::CreatePassive("R", SCREEN_TAG_ROUTE);
 	TagItem SepItem = TagItem::CreatePassive("V");
 
 	TagItem BlankItem = TagItem::CreatePassive(" ");
 
 	// Tag definitions
 	const vector<vector<TagItem>> MinimizedTag = { { AltitudeItem, TendencyItem } };
-	const vector<vector<TagItem>> StandardTag = { { CallsignItem }, { AltitudeItem, TendencyItem, CFLItem }, { XFLItem  } };
+	const vector<vector<TagItem>> StandardTag = { { CallsignItem }, { AltitudeItem, TendencyItem, CFLItem }, { XFLItem, COPItem } };
 	const vector<vector<TagItem>> MagnifiedTag = { 
 	{ SepItem, CallsignItem, SectorItem },
 	{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
@@ -115,7 +116,17 @@ protected:
 		if (!RadarTarget.IsValid())
 			return TagReplacementMap;
 
-		TagReplacementMap.insert(pair<string, string>("Callsign", RadarTarget.GetCallsign()));
+		string callsign = RadarTarget.GetCallsign();
+
+		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED)
+			callsign = ">>" + callsign;
+
+		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED)
+			callsign = callsign + ">>";
+
+		TagReplacementMap.insert(pair<string, string>("Callsign", callsign));
+
+
 		TagReplacementMap.insert(pair<string, string>("Squawk", RadarTarget.GetPosition().GetSquawk()));
 		// Alt
 		string alt = to_string((int)RoundTo(RadarTarget.GetPosition().GetFlightLevel(), 100) / 100);
@@ -169,7 +180,6 @@ protected:
 
 			TagReplacementMap.insert(pair<string, string>("RFL", RFL));
 
-
 			// CFL
 			string CFL = to_string((int)FlightPlan.GetClearedAltitude() / 100);
 
@@ -200,15 +210,75 @@ protected:
 
 			TagReplacementMap.insert(pair<string, string>("Sector", SectorId));
 
-			string Horizontal = FlightPlan.GetControllerAssignedData().GetDirectToPointName();
-			if (Horizontal.empty() && FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0) {
+			string Horizontal = "HDG";
+			if (FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0) {
 				Horizontal = "H" + padWithZeros(3, FlightPlan.GetControllerAssignedData().GetAssignedHeading());
 			}
-			else {
-				Horizontal = "HDG";
+			else if (strlen(FlightPlan.GetControllerAssignedData().GetDirectToPointName()) != 0) {
+				Horizontal = FlightPlan.GetControllerAssignedData().GetDirectToPointName();
 			}
 
 			TagReplacementMap.insert(pair<string, string>("HDG", Horizontal));
+
+			string XFL = "";
+			if (isMagnified)
+				XFL = "XFL";
+
+			// if assumed, then COPX alt is shown, else COPN alt
+			if (FlightPlan.GetTrackingControllerIsMe()) {
+				if (FlightPlan.GetExitCoordinationAltitude() != 0) {
+					XFL = to_string(FlightPlan.GetExitCoordinationAltitude() / 100);
+
+					if (FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME ||
+						FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						XFL = PREFIX_PURPLE_COLOR + XFL;
+				}
+					
+			}
+			else {
+				if (FlightPlan.GetEntryCoordinationAltitude() != 0) {
+					XFL = to_string(FlightPlan.GetEntryCoordinationAltitude() / 100);
+
+					if (FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME ||
+						FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						XFL = PREFIX_PURPLE_COLOR + XFL;
+				}
+					
+			}
+
+			if (!isMagnified && XFL.length() != 0 && XFL == CFL)
+				XFL = "";
+
+			TagReplacementMap.insert(pair<string, string>("XFL", XFL));
+			
+			string COP = "";
+			if (isMagnified)
+				COP = "COPX";
+
+			// if assumed, then COPX  is shown, else COPN
+			if (FlightPlan.GetTrackingControllerIsMe()) {
+				if (strlen(FlightPlan.GetExitCoordinationPointName()) != 0) {
+					COP = FlightPlan.GetExitCoordinationPointName();
+
+					if (FlightPlan.GetExitCoordinationNameState() == COORDINATION_STATE_REQUESTED_BY_ME ||
+						FlightPlan.GetExitCoordinationNameState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						COP = PREFIX_PURPLE_COLOR + COP;
+				}
+			}
+			else {
+				if (strlen(FlightPlan.GetEntryCoordinationPointName()) != 0) {
+					COP = FlightPlan.GetEntryCoordinationPointName();
+
+					if (FlightPlan.GetEntryCoordinationPointState() == COORDINATION_STATE_REQUESTED_BY_ME ||
+						FlightPlan.GetEntryCoordinationPointState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						COP = PREFIX_PURPLE_COLOR + COP;
+				}
+			}
+
+			if (!isMagnified && COP.length() != 0 && COP == string(FlightPlan.GetControllerAssignedData().GetDirectToPointName()))
+				COP = "";
+
+			TagReplacementMap.insert(pair<string, string>("COP", COP));
 		}
 
 		string tendency = "-";

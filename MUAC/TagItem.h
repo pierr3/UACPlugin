@@ -8,13 +8,13 @@ using namespace EuroScopePlugIn;
 class TagItem
 {
 public:
-	const enum TagColourTypes { StateColor, DimOnSituation, Information, Event };
+	const enum TagColourTypes { StateColor, Information, Highlight };
 
 	TagItem() {};
 	~TagItem() {};
 
-	static TagItem CreatePassive(string text, TagColourTypes ColourType = TagColourTypes::StateColor) {
-		TagItem i; i.Text = text; i.ColourType = ColourType; i.TagType = text;
+	static TagItem CreatePassive(string text, int ClickId = 0, TagColourTypes ColourType = TagColourTypes::StateColor) {
+		TagItem i; i.Text = text; i.ColourType = ColourType; i.TagType = text; i.ClickId = ClickId;
 		return i;
 	};
 
@@ -25,4 +25,5 @@ public:
 	string Text;
 	TagColourTypes ColourType;
 	string TagType;
+	int ClickId;
 };
