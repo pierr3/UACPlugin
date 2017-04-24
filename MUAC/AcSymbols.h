@@ -94,8 +94,8 @@ public:
 
 		POINT AcPoint = radar->ConvertCoordFromPositionToPixel(radarTarget.GetPosition().GetPosition());
 
-		double d = double(radarTarget.GetPosition().GetReportedGS()*0.514444) * (Seconds - 10);
-		CPosition PredictedEnd = BetterHarversine(radarTarget.GetPosition().GetPosition(), radarTarget.GetTrackHeading(), d);
+		double d = double(radarTarget.GetPosition().GetReportedGS()*0.514444) * (Seconds);
+		CPosition PredictedEnd = Extrapolate(radarTarget.GetPosition().GetPosition(), radarTarget.GetTrackHeading(), d);
 		POINT PredictedEndPoint = radar->ConvertCoordFromPositionToPixel(PredictedEnd);
 
 		int bound = DRAWING_AC_SQUARE_SYMBOL_SIZE + DRAWING_PADDING;

@@ -6,6 +6,8 @@ string DetailedTag = "";
 
 RadarScreen::RadarScreen()
 {
+	srand((unsigned int)time(NULL));
+
 	// Initialize the Menu Bar
 	MenuButtons = MenuBar::MakeButtonData();
 	LoadAllData();
@@ -119,16 +121,85 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				dc.MoveTo(FirstPos);
 				dc.LineTo(SecondPos);
 
+				// First the distance tool
+
 				string distanceText = to_string(FirstTargetPos.DistanceTo(SecondTargetPos));
 				size_t decimal_pos = distanceText.find(".");
 				distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
 
-				POINT TextPositon = { (int)((FirstPos.x + SecondPos.x)/2) + 20, (int)((FirstPos.y + SecondPos.y) / 2) };
+				string headingText = to_string(FirstTargetPos.DirectionTo(SecondTargetPos));
+				decimal_pos = headingText.find(".");
+				distanceText += " " + headingText.substr(0, decimal_pos + 2) + "°";
+
+				POINT MidPointDistance = { (int)((FirstPos.x + SecondPos.x) / 2), (int)((FirstPos.y + SecondPos.y) / 2) };
+
+				// We have to calculate the text angle 
+				int lineheading = (int)fmod(FirstTargetPos.DirectionTo(SecondTargetPos) - 90, 360);
+				int angle = (int)fmod(lineheading + 90.0f, 360.0f);
+				if (FirstTargetPos.DirectionTo(SecondTargetPos) >= 180) {
+					angle = (int)fmod(lineheading - 90, 360);
+				}
+
+				POINT TextPositon;
+				TextPositon.x = long(MidPointDistance.x + float(20 * cos(DegToRad(angle))));
+				TextPositon.y = long(MidPointDistance.y + float(20 * sin(DegToRad(angle))));
+
 				dc.TextOutA(TextPositon.x, TextPositon.y, distanceText.c_str());
 
 				CSize Measure = dc.GetTextExtent(distanceText.c_str());
 
 				CRect AreaRemoveTool = { TextPositon.x, TextPositon.y, TextPositon.x + Measure.cx, TextPositon.y + Measure.cy };
+
+				CPosition Prediction;
+				CPosition PredictionOther;
+				double lastDistance = FirstTargetPos.DistanceTo(SecondTargetPos);
+				for (int i = 10; i < 60 * 45; i += 10) {
+					Prediction = Extrapolate(FirstTargetPos, FirstTarget.GetTrackHeading(),
+						FirstTarget.GetPosition().GetReportedGS()*0.514444*i);
+					PredictionOther = Extrapolate(SecondTargetPos, SecondTarget.GetTrackHeading(),
+						SecondTarget.GetPosition().GetReportedGS()*0.514444*i);
+
+					// The distance started to increase, we passed the minimum point
+					if (Prediction.DistanceTo(PredictionOther) > lastDistance) {
+						if (lastDistance == FirstTargetPos.DistanceTo(SecondTargetPos))
+							break;
+
+						CPosition velocity = Extrapolate(Prediction, FirstTarget.GetTrackHeading(),
+							FirstTarget.GetPosition().GetReportedGS()*0.514444*MenuBar::GetVelValueButtonPressed(ButtonsPressed));
+						DrawHourGlassWithLeader(&dc, ConvertCoordFromPositionToPixel(Prediction),
+							ConvertCoordFromPositionToPixel(velocity));
+
+						velocity = Extrapolate(PredictionOther, SecondTarget.GetTrackHeading(),
+							SecondTarget.GetPosition().GetReportedGS()*0.514444*MenuBar::GetVelValueButtonPressed(ButtonsPressed));
+						DrawHourGlassWithLeader(&dc, ConvertCoordFromPositionToPixel(PredictionOther),
+							ConvertCoordFromPositionToPixel(velocity));
+
+						distanceText = to_string(Prediction.DistanceTo(PredictionOther));
+						decimal_pos = distanceText.find(".");
+						distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
+
+						distanceText += " " + to_string((int)i / 60) + "'" + to_string((int)i % 60) + '"';
+
+						dc.TextOutA(TextPositon.x, TextPositon.y + Measure.cy, distanceText.c_str());
+						AreaRemoveTool.right = max(AreaRemoveTool.right, TextPositon.x + Measure.cx);
+						AreaRemoveTool.bottom = TextPositon.y + Measure.cy * 2;
+
+						break;
+					}
+						
+					lastDistance = Prediction.DistanceTo(PredictionOther);
+				}
+
+				POINT ClipFrom, ClipTo;
+				if (LiangBarsky(AreaRemoveTool, MidPointDistance, AreaRemoveTool.CenterPoint(), ClipFrom, ClipTo)) {
+					CPen DashedPen(PS_DOT, 1, Colours::OrangeTool.ToCOLORREF());
+					dc.SelectObject(&DashedPen);
+
+					dc.MoveTo(MidPointDistance);
+					dc.LineTo(ClipFrom);
+
+					dc.SelectObject(&SepToolColorPen);
+				}
 
 				AddScreenObject(SCREEN_SEP_TOOL, string(kv.first + "," + kv.second).c_str(), AreaRemoveTool, false, "");
 			}
@@ -334,7 +405,7 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 
 			range = max(0, range);
 
-			CPosition RightUp = BetterHarversine(TopLeft, bearing, range * 1852);
+			CPosition RightUp = Extrapolate(TopLeft, bearing, range * 1852);
 
 			SetDisplayArea(TopLeft, RightUp);
 		}
@@ -344,6 +415,8 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		if (AcquiringSepTool != "" && AcquiringSepTool != sObjectId) {
 			SepToolPairs.insert(pair<string, string>(AcquiringSepTool, sObjectId));
 			AcquiringSepTool = "";
+
+			return;
 		}
 	}
 
