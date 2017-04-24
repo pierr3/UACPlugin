@@ -17,6 +17,8 @@ const string PREFIX_PURPLE_COLOR = "_/";
 const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;
 
+const int SCREEN_SEP_TOOL = 20;
+
 const int DRAWING_AC_SQUARE_SYMBOL_SIZE = 4;
 const int DRAWING_AC_SQUARE_TRAIL_SIZE = 1;
 
@@ -61,6 +63,7 @@ const int SCREEN_TAG_HORIZ = 705;
 const int SCREEN_TAG_RFL = 706;
 const int SCREEN_TAG_XFL = 707;
 const int SCREEN_TAG_COP = 708;
+const int SCREEN_TAG_SEP = 709;
 
 // Functions
 const int FUNC_FILTER_HARD_LOW = BUTTON_FILTER_HARD_LOW;

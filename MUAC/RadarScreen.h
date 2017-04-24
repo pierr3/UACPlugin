@@ -38,6 +38,9 @@ private:
 	map<string, POINT> TagOffsets;
 	map<int, string> MenuButtons;
 	map<int, bool> ButtonsPressed;
+	multimap<string, string> SepToolPairs;
+
+	string AcquiringSepTool = "";
 
 	struct RadarFiltersStruct {
 		int Hard_Low = 0;

@@ -41,7 +41,7 @@ public:
 	TagItem VerticalRate = TagItem::CreatePassive("VerticalRate");
 
 	TagItem RouteDisplay = TagItem::CreatePassive("R", SCREEN_TAG_ROUTE);
-	TagItem SepItem = TagItem::CreatePassive("V");
+	TagItem SepItem = TagItem::CreatePassive("V", SCREEN_TAG_SEP);
 
 	TagItem BlankItem = TagItem::CreatePassive(" ");
 

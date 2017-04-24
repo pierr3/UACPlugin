@@ -55,6 +55,88 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 	RadarArea.top = RadarArea.top - 1;
 	RadarArea.bottom = GetChatArea().bottom;
 
+	if (Phase == REFRESH_PHASE_BEFORE_TAGS) {
+
+		int saveTool = dc.SaveDC();
+
+		// Sep tools
+
+		CPen SepToolColorPen(PS_SOLID, 1, Colours::OrangeTool.ToCOLORREF());
+		dc.SelectObject(&SepToolColorPen);
+		dc.SetTextColor(Colours::OrangeTool.ToCOLORREF());
+
+		CFont* pOldFont = dc.GetCurrentFont();
+		LOGFONT logFont;
+		pOldFont->GetLogFont(&logFont);
+		logFont.lfHeight = FONT_SIZE;
+		CFont TagNormalFont;
+		TagNormalFont.CreateFontIndirect(&logFont);
+
+		dc.SelectObject(&TagNormalFont);
+
+		// 
+		// First is active tool
+		//
+
+		if (AcquiringSepTool != "") {
+			CPosition ActivePosition = GetPlugIn()->RadarTargetSelect(AcquiringSepTool.c_str()).GetPosition().GetPosition();
+			
+			
+			if (GetPlugIn()->RadarTargetSelect(AcquiringSepTool.c_str()).GetPosition().IsValid()) {
+				POINT ActivePositionPoint = ConvertCoordFromPositionToPixel(ActivePosition);
+
+				dc.MoveTo(ActivePositionPoint);
+				dc.LineTo(MousePoint);
+				string distanceText = to_string(ActivePosition.DistanceTo(ConvertCoordFromPixelToPosition(MousePoint)));
+				size_t decimal_pos = distanceText.find(".");
+				distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
+
+				string headingText = to_string(ActivePosition.DirectionTo(ConvertCoordFromPixelToPosition(MousePoint)));
+				decimal_pos = headingText.find(".");
+				distanceText += " " + headingText.substr(0, decimal_pos + 2) + "°";
+
+				POINT TextPositon = { MousePoint.x + 10, MousePoint.y };
+				dc.TextOutA(TextPositon.x, TextPositon.y, distanceText.c_str());
+			}
+
+			RequestRefresh();
+		}
+
+		// 
+		// Other tools
+		//
+		for (auto kv : SepToolPairs) {
+			CRadarTarget FirstTarget = GetPlugIn()->RadarTargetSelect(kv.first.c_str());
+			CRadarTarget SecondTarget = GetPlugIn()->RadarTargetSelect(kv.second.c_str());
+
+			if (FirstTarget.IsValid() && SecondTarget.IsValid()) {
+				CPosition FirstTargetPos = FirstTarget.GetPosition().GetPosition();
+				CPosition SecondTargetPos = SecondTarget.GetPosition().GetPosition();
+
+				POINT FirstPos = ConvertCoordFromPositionToPixel(FirstTargetPos);
+				POINT SecondPos = ConvertCoordFromPositionToPixel(SecondTargetPos);
+
+				dc.MoveTo(FirstPos);
+				dc.LineTo(SecondPos);
+
+				string distanceText = to_string(FirstTargetPos.DistanceTo(SecondTargetPos));
+				size_t decimal_pos = distanceText.find(".");
+				distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
+
+				POINT TextPositon = { (int)((FirstPos.x + SecondPos.x)/2) + 20, (int)((FirstPos.y + SecondPos.y) / 2) };
+				dc.TextOutA(TextPositon.x, TextPositon.y, distanceText.c_str());
+
+				CSize Measure = dc.GetTextExtent(distanceText.c_str());
+
+				CRect AreaRemoveTool = { TextPositon.x, TextPositon.y, TextPositon.x + Measure.cx, TextPositon.y + Measure.cy };
+
+				AddScreenObject(SCREEN_SEP_TOOL, string(kv.first + "," + kv.second).c_str(), AreaRemoveTool, false, "");
+			}
+		}
+
+		dc.RestoreDC(saveTool);
+	}
+
 	for (CRadarTarget radarTarget = GetPlugIn()->RadarTargetSelectFirst(); radarTarget.IsValid();
 		radarTarget = GetPlugIn()->RadarTargetSelectNext(radarTarget))
 	{
@@ -85,8 +167,10 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				continue;
 
 			// If VFR
-			if ((radarTarget.GetPosition().GetSquawk() == "7000" ||
-				(isCorrelated && CorrelatedFlightPlan.GetFlightPlanData().GetPlanType() == "V")) && !ButtonsPressed[BUTTON_VFR_ON])
+			if (radarTarget.GetPosition().GetSquawk() == "7000" && !ButtonsPressed[BUTTON_VFR_ON])
+				continue;
+
+			if (isCorrelated && CorrelatedFlightPlan.GetFlightPlanData().GetPlanType() == "V" && !ButtonsPressed[BUTTON_VFR_ON])
 				continue;
 
 			if (Altitude <= RadarFilters.Soft_Low || Altitude >= RadarFilters.Soft_High)
@@ -207,7 +291,7 @@ void RadarScreen::OnOverScreenObject(int ObjectType, const char * sObjectId, POI
 void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
 {
 	// Handle button menu click
-	if (ObjectType >= 400 && Button == BUTTON_LEFT) {
+	if (ObjectType >= BUTTON_HIDEMENU && ObjectType < BUTTON_DOTS && Button == BUTTON_LEFT) {
 		if (ObjectType >= BUTTON_VEL1 && ObjectType <= BUTTON_VEL8 && !ButtonsPressed[ObjectType])
 			ButtonsPressed = MenuBar::ResetAllVelButtons(ButtonsPressed);
 
@@ -256,8 +340,31 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		}
 	}
 
+	if (ObjectType == SCREEN_TAG || ObjectType == SCREEN_AC_SYMBOL || ObjectType >= SCREEN_TAG_CALLSIGN) {
+		if (AcquiringSepTool != "" && AcquiringSepTool != sObjectId) {
+			SepToolPairs.insert(pair<string, string>(AcquiringSepTool, sObjectId));
+			AcquiringSepTool = "";
+		}
+	}
+
+	if (ObjectType == SCREEN_SEP_TOOL) {
+		vector<string> s = split(sObjectId, ',');
+		pair<string, string> toRemove = pair<string, string>(s.front(), s.back());
+
+		typedef multimap<string, string>::iterator iterator;
+		std::pair<iterator, iterator> iterpair = SepToolPairs.equal_range(toRemove.first);
+
+		iterator it = iterpair.first;
+		for (; it != iterpair.second; ++it) {
+			if (it->second == toRemove.second) {
+				it = SepToolPairs.erase(it);
+				break;
+			}
+		}
+	}
+
 	// Tag clicks
-	if (ObjectType >= 700) {
+	if (ObjectType >= SCREEN_TAG_CALLSIGN) {
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
 		
 		CFlightPlan fp = GetPlugIn()->FlightPlanSelectASEL();
@@ -306,6 +413,16 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 			else {
 				FunctionId = TAG_ITEM_FUNCTION_COPN_NAME;
 			}
+		}
+
+		if (ObjectType == SCREEN_TAG_SEP) {
+			FunctionId = TAG_ITEM_FUNCTION_NO;
+
+			if (AcquiringSepTool == sObjectId)
+				AcquiringSepTool = "";
+			else
+				AcquiringSepTool = sObjectId;
+
 		}
 
 		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL, 
