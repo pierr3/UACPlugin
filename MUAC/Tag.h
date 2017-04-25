@@ -24,6 +24,8 @@ public:
 	TagItem AltitudeItem = TagItem::CreatePassive("Altitude");
 	TagItem TendencyItem = TagItem::CreatePassive("Tendency");
 
+	TagItem CoumpoundWarning = TagItem::CreatePassive("Warning", TagItem::TagColourTypes::Information);
+	
 	// CFL
 	TagItem CFLItem = TagItem::CreatePassive("CFL", SCREEN_TAG_CFL);
 	// Combination of NFL and XFL, depending on the state
@@ -47,8 +49,9 @@ public:
 
 	// Tag definitions
 	const vector<vector<TagItem>> MinimizedTag = { { AltitudeItem, TendencyItem } };
-	const vector<vector<TagItem>> StandardTag = { { CallsignItem }, { AltitudeItem, TendencyItem, CFLItem }, { XFLItem, COPItem } };
+	const vector<vector<TagItem>> StandardTag = { { CoumpoundWarning }, { CallsignItem }, { AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem }, { XFLItem, COPItem } };
 	const vector<vector<TagItem>> MagnifiedTag = { 
+	{ CoumpoundWarning },
 	{ SepItem, CallsignItem, SectorItem },
 	{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
 	{ BlankItem, XFLItem, COPItem, RFLItem },
@@ -119,7 +122,13 @@ protected:
 		string callsign = RadarTarget.GetCallsign();
 
 		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED)
-			callsign = ">>" + callsign;
+			callsign = PREFIX_PURPLE_COLOR+">>" + callsign;
+
+		if (FlightPlan.IsValid() && FlightPlan.IsTextCommunication())
+			callsign += "/t";
+
+		if (FlightPlan.IsValid() && (FlightPlan.GetControllerAssignedData().GetCommunicationType() == 'R'))
+			callsign += "/r";
 
 		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED)
 			callsign = callsign + ">>";
@@ -172,6 +181,31 @@ protected:
 		
 		if (FlightPlan.IsValid()) {
 			
+			string warning = "";
+			if (FlightPlan.GetCLAMFlag())
+				warning = "CLAM";
+			if (FlightPlan.GetRAMFlag())
+				warning = "RAM";
+			if (FlightPlan.GetRAMFlag() && FlightPlan.GetCLAMFlag())
+				warning = "C+R";
+
+			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
+			const char * ssr = RadarTarget.GetPosition().GetSquawk();
+			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+				if (warning.length() != 0)
+					warning += " ";
+				warning += "A" + string(assr);
+			}
+			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
+				if (warning.length() != 0)
+					warning += " ";
+				warning += "MODEA";
+			}
+
+
+
+			TagReplacementMap.insert(pair<string, string>("Warning", ""));
+
 			// RFL
 			string RFL = to_string((int)FlightPlan.GetControllerAssignedData().GetFinalAltitude() / 100);
 
@@ -211,11 +245,19 @@ protected:
 			TagReplacementMap.insert(pair<string, string>("Sector", SectorId));
 
 			string Horizontal = "HDG";
-			if (FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0) {
-				Horizontal = "H" + padWithZeros(3, FlightPlan.GetControllerAssignedData().GetAssignedHeading());
+			if (isMagnified) {
+				if (FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0) {
+					Horizontal = "H" + padWithZeros(3, FlightPlan.GetControllerAssignedData().GetAssignedHeading());
+				}
+				else if (strlen(FlightPlan.GetControllerAssignedData().GetDirectToPointName()) != 0) {
+					Horizontal = FlightPlan.GetControllerAssignedData().GetDirectToPointName();
+				}
 			}
-			else if (strlen(FlightPlan.GetControllerAssignedData().GetDirectToPointName()) != 0) {
-				Horizontal = FlightPlan.GetControllerAssignedData().GetDirectToPointName();
+			else {
+				if (FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0)
+					Horizontal = "H";
+				else
+					Horizontal = "";
 			}
 
 			TagReplacementMap.insert(pair<string, string>("HDG", Horizontal));

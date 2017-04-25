@@ -39,6 +39,10 @@ private:
 	map<int, string> MenuButtons;
 	map<int, bool> ButtonsPressed;
 	multimap<string, string> SepToolPairs;
+	map<string, CRect> TagAreas;
+	map <string, clock_t> RecentlyAutoMovedTags;
+	POINT MousePoint = { 0, 0 };
+	string DetailedTag = "";
 
 	string AcquiringSepTool = "";
 

@@ -6,7 +6,7 @@ using namespace std;
 using namespace EuroScopePlugIn;
 
 const string PLUGIN_NAME = "MUAC PlugIn";
-const string PLUGIN_VERSION = "312E30";
+const string PLUGIN_VERSION = "1.0.0e32";
 const string PLUGIN_AUTHOR = "github.com/pierr3";
 const string PLUGIN_COPY = "GPL v3";
 
@@ -21,6 +21,7 @@ const int SCREEN_SEP_TOOL = 20;
 
 const int DRAWING_AC_SQUARE_SYMBOL_SIZE = 4;
 const int DRAWING_AC_SQUARE_TRAIL_SIZE = 1;
+const int DRAWING_AC_PRIMARY_DIAMOND_SIZE = 3;
 
 const int DRAWING_PADDING = 3;
 

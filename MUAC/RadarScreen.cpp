@@ -1,13 +1,8 @@
 #include "stdafx.h"
 #include "RadarScreen.h"
 
-POINT MousePoint = { 0, 0 };
-string DetailedTag = "";
-
 RadarScreen::RadarScreen()
 {
-	srand((unsigned int)time(NULL));
-
 	// Initialize the Menu Bar
 	MenuButtons = MenuBar::MakeButtonData();
 	LoadAllData();
@@ -133,20 +128,69 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 				POINT MidPointDistance = { (int)((FirstPos.x + SecondPos.x) / 2), (int)((FirstPos.y + SecondPos.y) / 2) };
 
+				//
+				// TESTING
+				//
+				/*CPen PurplePen(PS_SOLID, 2, Colours::PurpleDisplay.ToCOLORREF());
+				CPen* oldObject = (CPen*)dc.SelectObject(&PurplePen);
+				COLORREF oldColor = dc.SetTextColor(Colours::PurpleDisplay.ToCOLORREF());
+
+				double NORTH = fmod(0 - 90, 360);
+				double SOUTH = fmod(180 - 90, 360);
+				double EAST = fmod(90 - 90, 360);
+				double WEST = fmod(270 - 90, 360);
+
+				int LENGHT = 100;
+				POINT p = { 0, 0 };
+
+				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(NORTH))));
+				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(NORTH))));
+				dc.MoveTo(MidPointDistance);
+				dc.LineTo(p);
+				dc.TextOutA(p.x, p.y, "N");
+
+				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(EAST))));
+				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(EAST))));
+				dc.MoveTo(MidPointDistance);
+				dc.LineTo(p);
+				dc.TextOutA(p.x, p.y, "E");
+
+				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(SOUTH))));
+				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(SOUTH))));
+				dc.MoveTo(MidPointDistance);
+				dc.LineTo(p);
+				dc.TextOutA(p.x, p.y, "S");
+
+				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(WEST))));
+				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(WEST))));
+				dc.MoveTo(MidPointDistance);
+				dc.LineTo(p);
+				dc.TextOutA(p.x, p.y, "W");
+
+				dc.SetTextColor(oldColor);
+				dc.SelectObject(oldObject);
+				//
+				//
+				//
+				*/
+
+				CSize Measure = dc.GetTextExtent(distanceText.c_str());
+
 				// We have to calculate the text angle 
-				int lineheading = (int)fmod(FirstTargetPos.DirectionTo(SecondTargetPos) - 90, 360);
-				int angle = (int)fmod(lineheading + 90.0f, 360.0f);
-				if (FirstTargetPos.DirectionTo(SecondTargetPos) >= 180) {
-					angle = (int)fmod(lineheading - 90, 360);
+				double AdjustedLineHeading = fmod(FirstTargetPos.DirectionTo(SecondTargetPos) - 90.0, 360.0);
+				double NewAngle = fmod(AdjustedLineHeading + 90, 360);
+
+				if (FirstTargetPos.DirectionTo(SecondTargetPos) > 180.0) {
+					NewAngle = fmod(AdjustedLineHeading - 90, 360);
 				}
 
 				POINT TextPositon;
-				TextPositon.x = long(MidPointDistance.x + float(20 * cos(DegToRad(angle))));
-				TextPositon.y = long(MidPointDistance.y + float(20 * sin(DegToRad(angle))));
+				TextPositon.x = long(MidPointDistance.x + float((20+Measure.cx) * cos(DegToRad(NewAngle))));
+				TextPositon.y = long(MidPointDistance.y + float((20)* sin(DegToRad(NewAngle))));
+
+				TextPositon.x -= Measure.cx / 2;
 
 				dc.TextOutA(TextPositon.x, TextPositon.y, distanceText.c_str());
-
-				CSize Measure = dc.GetTextExtent(distanceText.c_str());
 
 				CRect AreaRemoveTool = { TextPositon.x, TextPositon.y, TextPositon.x + Measure.cx, TextPositon.y + Measure.cy };
 
@@ -219,29 +263,33 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		Tag::TagStates AcState = Tag::TagStates::NotConcerned;
 
 		bool IsSoft = false;
+		bool IsPrimary = !radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI();
 
 		/// 
 		/// Filtering
 		///
 		if (ButtonsPressed[BUTTON_FILTER_ON]) {
 
-			// If not in between the hard filters, we don't show it.
-			if (Altitude <= RadarFilters.Hard_Low)
+			// If is below 60kts, don't show
+			if (radarTarget.GetPosition().GetReportedGS() < 60)
 				continue;
 
-			if (Altitude >= RadarFilters.Hard_High)
+			// If not in between the hard filters, we don't show it.
+			if (Altitude <= RadarFilters.Hard_Low && !IsPrimary)
+				continue;
+
+			if (Altitude >= RadarFilters.Hard_High && !IsPrimary)
 				continue;
 
 			// If Primary
-			if (!radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI()
-				&& !ButtonsPressed[BUTTON_PRIMARY_TARGETS_ON])
+			if (IsPrimary && !ButtonsPressed[BUTTON_PRIMARY_TARGETS_ON])
 				continue;
 
 			// If VFR
-			if (radarTarget.GetPosition().GetSquawk() == "7000" && !ButtonsPressed[BUTTON_VFR_ON])
+			if (startsWith("7000", radarTarget.GetPosition().GetSquawk()) && !ButtonsPressed[BUTTON_VFR_ON] && !IsPrimary)
 				continue;
 
-			if (isCorrelated && CorrelatedFlightPlan.GetFlightPlanData().GetPlanType() == "V" && !ButtonsPressed[BUTTON_VFR_ON])
+			if (isCorrelated && startsWith("V", CorrelatedFlightPlan.GetFlightPlanData().GetPlanType()) && !ButtonsPressed[BUTTON_VFR_ON] && !IsPrimary)
 				continue;
 
 			if (Altitude <= RadarFilters.Soft_Low || Altitude >= RadarFilters.Soft_High)
@@ -266,7 +314,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_REDUNDANT)
 				AcState = Tag::TagStates::Redundant;
 		}
-		else {
+		else{ 
 			if (CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED || 
 				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED ||
 				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_ASSUMED ||
@@ -274,12 +322,28 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				AcState = Tag::TagStates::Redundant;
 		}
 
+		if (IsPrimary) {
+			AcState = Tag::TagStates::NotConcerned;
+			IsSoft = false;
+		}
+
 #pragma region BeforeTags
 
 		if (Phase == REFRESH_PHASE_BEFORE_TAGS) {
-			CRect r = AcSymbols::DrawSquareAndTrail(&dc, AcState, this, radarTarget, ButtonsPressed[BUTTON_DOTS], IsSoft, isDetailed);
-			AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, "");
-			AcSymbols::DrawSpeedVector(&dc, AcState, this, radarTarget, IsSoft, MenuBar::GetVelValueButtonPressed(ButtonsPressed));
+			if (!IsPrimary) {
+				CRect r = AcSymbols::DrawSquareAndTrail(&dc, AcState, this, radarTarget, ButtonsPressed[BUTTON_DOTS], IsSoft, isDetailed);
+				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, "");
+			}
+			else {
+				AcSymbols::DrawPrimaryTrailAndDiamong(&dc, this, radarTarget, ButtonsPressed[BUTTON_DOTS]);
+			}
+
+			if ((IsPrimary || !isCorrelated) && ButtonsPressed[BUTTON_VELOTH]) {
+				AcSymbols::DrawSpeedVector(&dc, AcState, this, radarTarget, IsPrimary, IsSoft, MenuBar::GetVelValueButtonPressed(ButtonsPressed));
+			}
+			else if (!IsPrimary && isCorrelated) {
+				AcSymbols::DrawSpeedVector(&dc, AcState, this, radarTarget, IsPrimary, IsSoft, MenuBar::GetVelValueButtonPressed(ButtonsPressed));
+			}
 		}
 
 #pragma endregion
@@ -288,6 +352,9 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 		if (Phase == REFRESH_PHASE_AFTER_TAGS) {
 			// Draw the tag
+
+			if (IsPrimary)
+				continue;
 
 			Tag t = Tag(AcState, isDetailed, IsSoft, this, radarTarget, CheatFlightPlan);
 
@@ -305,6 +372,9 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			// We check if the tag is still detailed
 			if ((!IsInRect(MousePoint, r) && !IsInRect(MousePoint, SymbolArea)) && DetailedTag == radarTarget.GetCallsign())
 				DetailedTag = "";
+
+			// Store the tag for tag deconfliction
+			TagAreas[radarTarget.GetCallsign()] = r;
 
 			// We add the screen rect
 			AddScreenObject(SCREEN_TAG, radarTarget.GetCallsign(), r, true, "");
@@ -330,6 +400,128 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		
 		// Menubar
 		MenuBar::DrawMenuBar(&dc, this, { RadarArea.left, RadarArea.top + 1 }, MousePoint, MenuButtons, ButtonsPressed);
+
+		// Tag deconfliction
+		for (const auto areas : TagAreas)
+		{
+			if (areas.first == DetailedTag)
+				continue;
+
+			CRadarTarget rt = GetPlugIn()->RadarTargetSelect(areas.first.c_str());
+			POINT AcPosition = ConvertCoordFromPositionToPixel(rt.GetPosition().GetPosition());
+
+			int DistanceBetweenTag = (int)sqrt(pow(TagOffsets[areas.first.c_str()].x - AcPosition.x, 2) +
+				pow(TagOffsets[areas.first.c_str()].y - AcPosition.y, 2));
+
+			// If the tag has recently been automatically moved, then we don't move it
+			if (RecentlyAutoMovedTags.find(areas.first) != RecentlyAutoMovedTags.end())
+			{
+				double t = (double)clock() - RecentlyAutoMovedTags[areas.first] / ((double)CLOCKS_PER_SEC);
+				if (t >= 1)
+					RecentlyAutoMovedTags.erase(areas.first);
+				else
+					continue;
+			}
+
+			CRect OriginalArea = areas.second;
+
+			CRect TestArea = OriginalArea;
+			int options = 0;
+			bool IsConflicting = true;
+
+			double AdjustedLineHeading = fmod(rt.GetTrackHeading() - 90.0, 360.0);
+			while (IsConflicting && options <= 10) {
+
+				POINT TopLeftTag;
+				double NewAngle = 0;
+				// We run through the options
+				if (options == 1) {
+					NewAngle = fmod(AdjustedLineHeading + 30, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 2) {
+					NewAngle = fmod(AdjustedLineHeading + 60, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 3) {
+					NewAngle = fmod(AdjustedLineHeading + 90, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 4) {
+					NewAngle = fmod(AdjustedLineHeading + 120, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 5) {
+					NewAngle = fmod(AdjustedLineHeading + 130, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 6) {
+					NewAngle = fmod(AdjustedLineHeading - 30, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 7) {
+					NewAngle = fmod(AdjustedLineHeading - 60, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 8) {
+					NewAngle = fmod(AdjustedLineHeading - 90, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 9) {
+					NewAngle = fmod(AdjustedLineHeading - 120, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+				if (options == 10) {
+					NewAngle = fmod(AdjustedLineHeading - 130, 360);
+					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
+					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
+					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
+				}
+
+				IsConflicting = false;
+				// We check for conflicts
+				for (auto kv : TagAreas) {
+					if (kv.first == areas.first)
+						continue;
+
+					if (kv.first == DetailedTag)
+						continue;
+
+					CRect h;
+					if (h.IntersectRect(TestArea, kv.second)) {
+						IsConflicting = true;
+						break;
+					}
+				}
+
+				options++;
+			}
+
+			// If the tag has been moved
+			if (options != 0) {
+				TagOffsets[areas.first] = { TestArea.left - AcPosition.x, TestArea.top - AcPosition.y };
+				TagAreas[areas.first] = TestArea;
+				RecentlyAutoMovedTags[areas.first] = clock();
+			}
+		}
 	}
 
 	// Releasing the handle
@@ -498,8 +690,10 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 
 		}
 
-		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL, 
-			FunctionId, Pt, Area);
+		if (FunctionId != TAG_ITEM_FUNCTION_NO) {
+			StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
+				FunctionId, Pt, Area);
+		}
 	}
 
 	MousePoint = Pt;

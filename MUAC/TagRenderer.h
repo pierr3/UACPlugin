@@ -93,6 +93,10 @@ public:
 					dc->SetTextColor(SecondaryColor);
 				}
 
+				if (TagItem.ColourType == TagItem::TagColourTypes::Information) {
+					dc->SetTextColor(Colours::YellowWarning.ToCOLORREF());
+				}
+
 				if (TagItem.Text.compare(0, PREFIX_PURPLE_COLOR.length(), PREFIX_PURPLE_COLOR) == 0) {
 					dc->SetTextColor(Colours::PurpleDisplay.ToCOLORREF());
 					TagItem.Text.erase(0, PREFIX_PURPLE_COLOR.length());
@@ -118,7 +122,7 @@ public:
 					DetailedTagClicks->insert(pair<int, CRect>(TagItem.ClickId, TextBox));
 				
 
-				if (NeedPrimaryAreaSet && TagItem.Text != " ") {
+				if (NeedPrimaryAreaSet && TagItem.Text != " " && TagItem.TagType != "Warning") {
 					PrimaryArea = TextBox;
 					NeedPrimaryAreaSet = false;
 				}

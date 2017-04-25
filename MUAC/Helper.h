@@ -173,6 +173,12 @@ static bool IntersectRadials(CPosition firstPoint, double firstBearing, CPositio
 	}
 }
 
+inline static bool startsWith(const char *pre, const char *str)
+{
+	size_t lenpre = strlen(pre), lenstr = strlen(str);
+	return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
+};
+
 inline static string padWithZeros(int padding, int s)
 {
 	stringstream ss;
