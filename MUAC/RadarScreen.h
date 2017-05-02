@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include "Colours.h"
 #include "Tag.h"
 #include "TagRenderer.h"
@@ -7,6 +8,7 @@
 #include "AcSymbols.h"
 #include "MenuBar.h"
 #include "Helper.h"
+#include "STCA.h"
 #include "EuroScopePlugIn.h"
 
 using namespace std;
@@ -41,8 +43,13 @@ private:
 	multimap<string, string> SepToolPairs;
 	map<string, CRect> TagAreas;
 	map <string, clock_t> RecentlyAutoMovedTags;
+	vector<string> RouteBeingShown;
 	POINT MousePoint = { 0, 0 };
+	CSTCA * StcaInstance;
 	string DetailedTag = "";
+	clock_t OneSecondTimer;
+	clock_t HalfSecondTimer;
+	bool Blink = false;
 
 	string AcquiringSepTool = "";
 

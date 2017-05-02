@@ -190,6 +190,20 @@ inline static int RoundTo(int n, int multiplier) {
 	return (n + multiplier/2) / multiplier * multiplier;
 };
 
+static POINT RotatedPoint(POINT Point, POINT Origin, double angle) {
+	angle = DegToRad(angle);
+	POINT out;
+	out.x = (LONG)(cos(angle) * (Point.x - Origin.x) - sin(angle) * (Point.y - Origin.y) + Origin.x);
+	out.y = (LONG)(sin(angle) * (Point.x - Origin.x) + cos(angle) * (Point.y - Origin.y) + Origin.y);
+
+	return out;
+};
+
+static int DistanceBetweenPixels(POINT first, POINT second) {
+	return (int)sqrt(pow(first.x - second.x, 2) +
+		pow(first.y - second.y, 2));
+};
+
 inline static std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
 	std::stringstream ss(s);
 	std::string item;

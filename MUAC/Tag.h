@@ -24,7 +24,7 @@ public:
 	TagItem AltitudeItem = TagItem::CreatePassive("Altitude");
 	TagItem TendencyItem = TagItem::CreatePassive("Tendency");
 
-	TagItem CoumpoundWarning = TagItem::CreatePassive("Warning", TagItem::TagColourTypes::Information);
+	TagItem CoumpoundWarning = TagItem::CreatePassive("Warning", SCREEN_TAG_WARNING, TagItem::TagColourTypes::Information);
 	
 	// CFL
 	TagItem CFLItem = TagItem::CreatePassive("CFL", SCREEN_TAG_CFL);
@@ -145,7 +145,7 @@ protected:
 
 		TagReplacementMap.insert(pair<string, string>("Altitude", alt));
 		
-		TagReplacementMap.insert(pair<string, string>("ReportedGS", string("G") + to_string(RadarTarget.GetPosition().GetReportedGS())));
+		TagReplacementMap.insert(pair<string, string>("ReportedGS", string("N") + padWithZeros(4, RadarTarget.GetPosition().GetReportedGS())));
 
 		TagReplacementMap.insert(pair<string, string>("R", " "));
 		TagReplacementMap.insert(pair<string, string>("V", " "));
@@ -199,12 +199,13 @@ protected:
 			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
 				if (warning.length() != 0)
 					warning += " ";
-				warning += "MODEA";
+				warning += "CODE";
 			}
 
+			if (isMagnified && warning.length() != 0)
+				warning = " " + warning;
 
-
-			TagReplacementMap.insert(pair<string, string>("Warning", ""));
+			TagReplacementMap.insert(pair<string, string>("Warning", warning.c_str()));
 
 			// RFL
 			string RFL = to_string((int)FlightPlan.GetControllerAssignedData().GetFinalAltitude() / 100);

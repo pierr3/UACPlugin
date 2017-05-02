@@ -12,7 +12,7 @@ using namespace Gdiplus;
 
 class TagRenderer {
 public:
-	static RECT Render(CDC* dc, POINT MousePt, POINT TagOffset, POINT AcPosition, Tag tag, bool isDetailed, map<int, CRect>* DetailedTagClicks) {
+	static RECT Render(CDC* dc, POINT MousePt, POINT TagOffset, POINT AcPosition, Tag tag, bool isDetailed, bool isStca, map<int, CRect>* DetailedTagClicks) {
 		
 		vector<vector<TagItem>> Definition = tag.Definition;
 
@@ -110,7 +110,7 @@ public:
 					TagTopLeft.x + leftOffset + MeasureRect.cx, TagTopLeft.y + topOffset + MeasureRect.cy);
 
 				// Here we also dispaly the rectangle if the mouse cursor is in it
-				if (IsInRect(MousePt, TextBox) && isDetailed) {
+				if ((IsInRect(MousePt, TextBox) && isDetailed) || (isStca && TagItem.TagType == "Callsign")) {
 					CPen YellowPen(PS_SOLID, 1, Colours::YellowWarning.ToCOLORREF());
 					dc->SelectObject(&YellowPen);
 					dc->SelectStockObject(NULL_BRUSH);
@@ -121,7 +121,6 @@ public:
 				if (isDetailed && TagItem.ClickId != 0)
 					DetailedTagClicks->insert(pair<int, CRect>(TagItem.ClickId, TextBox));
 				
-
 				if (NeedPrimaryAreaSet && TagItem.Text != " " && TagItem.TagType != "Warning") {
 					PrimaryArea = TextBox;
 					NeedPrimaryAreaSet = false;
@@ -164,6 +163,9 @@ public:
 			if (LiangBarsky(SymbolArea, AcPosition, TagPoint, toDraw4, toDraw5)) {
 
 				COLORREF leaderLineColor = tag.IsSoft ? Colours::AircraftDarkGrey.ToCOLORREF() : Colours::AircraftLightGrey.ToCOLORREF();
+
+				if (isStca)
+					leaderLineColor = Colours::YellowHighlight.ToCOLORREF();
 
 				CPen leaderLinePen(PS_SOLID, 1, leaderLineColor);
 				dc->SelectObject(&leaderLinePen);

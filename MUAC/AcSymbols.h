@@ -10,7 +10,7 @@ using namespace EuroScopePlugIn;
 class AcSymbols
 {
 public:
-	static CRect DrawSquareAndTrail(CDC* dc, Tag::TagStates State, CRadarScreen* radar, CRadarTarget radarTarget, bool drawTrail, bool isSoft, bool isDetailed) {
+	static CRect DrawSquareAndTrail(CDC* dc, Tag::TagStates State, CRadarScreen* radar, CRadarTarget radarTarget, bool drawTrail, bool isSoft, bool isStca, bool blink, bool isDetailed) {
 		int save = dc->SaveDC();
 		
 		COLORREF SymbolColor = Colours::AircraftDarkGrey.ToCOLORREF();
@@ -32,11 +32,18 @@ public:
 		if (State == Tag::TagStates::Redundant)
 			SymbolColor = Colours::AircraftBlue.ToCOLORREF();
 
+		if (isStca) {
+			if (blink)
+				SymbolColor = Colours::YellowHighlight.ToCOLORREF();
+			else
+				SymbolColor = Colours::RedWarning.ToCOLORREF();
+		}
+
 		CPen TrailPen(PS_SOLID, 1, TrailColor);
 		CPen SymbolPen(PS_SOLID, 1, SymbolColor);
 
 		dc->SelectObject(&TrailPen);
-		dc->SelectStockObject(NULL_BRUSH);
+		CBrush *oldBrush = (CBrush *)dc->SelectStockObject(NULL_BRUSH);
 
 		// History Trail
 		CRadarTargetPositionData TrailPosition = radarTarget.GetPreviousPosition(radarTarget.GetPreviousPosition(radarTarget.GetPosition()));
@@ -54,7 +61,7 @@ public:
 			// We skip one position for the other
 			TrailPosition = radarTarget.GetPreviousPosition(radarTarget.GetPreviousPosition(TrailPosition));
 		}
-
+			
 		dc->SelectObject(&SymbolPen);
 
 		// Symbol itself
@@ -68,7 +75,15 @@ public:
 		CRect Area(radarTargetPoint.x - Size, radarTargetPoint.y - Size,
 			radarTargetPoint.x + Size, radarTargetPoint.y + Size);
 		Area.NormalizeRect();
-		dc->Rectangle(Area);
+
+		if (isStca) {
+			CBrush brush(SymbolColor);
+			dc->FillRect(Area, &brush);
+		}
+		else {
+			dc->Rectangle(Area);
+		}
+		
 
 		// Pixel in center
 		//dc->SetPixel(Area.CenterPoint(), SymbolColor);

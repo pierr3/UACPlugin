@@ -65,6 +65,7 @@ const int SCREEN_TAG_RFL = 706;
 const int SCREEN_TAG_XFL = 707;
 const int SCREEN_TAG_COP = 708;
 const int SCREEN_TAG_SEP = 709;
+const int SCREEN_TAG_WARNING = 710;
 
 // Functions
 const int FUNC_FILTER_HARD_LOW = BUTTON_FILTER_HARD_LOW;

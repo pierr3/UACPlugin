@@ -5,6 +5,10 @@ RadarScreen::RadarScreen()
 {
 	// Initialize the Menu Bar
 	MenuButtons = MenuBar::MakeButtonData();
+	StcaInstance = new CSTCA();
+
+	OneSecondTimer = clock();
+	HalfSecondTimer = clock();
 	LoadAllData();
 }
 
@@ -54,7 +58,26 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 	if (Phase == REFRESH_PHASE_BEFORE_TAGS) {
 
+		// One second actions
+		double t = (double)(clock() - OneSecondTimer) / ((double)CLOCKS_PER_SEC);
+		if (t >= 1) {
+			StcaInstance->OnRefresh(GetPlugIn());
+			OneSecondTimer = clock();
+		}
+
+		
+		t = (double)(clock() - HalfSecondTimer) / ((double)CLOCKS_PER_SEC);
+		if (t >= 0.5) {
+			Blink = !Blink;
+			HalfSecondTimer = clock();
+		}
+		//
+
 		int saveTool = dc.SaveDC();
+
+		TagAreas.clear();
+
+		
 
 		// Sep tools
 
@@ -265,6 +288,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		bool IsSoft = false;
 		bool IsPrimary = !radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI();
 
+		bool HideTarget = false;
 		/// 
 		/// Filtering
 		///
@@ -272,25 +296,25 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 			// If is below 60kts, don't show
 			if (radarTarget.GetPosition().GetReportedGS() < 60)
-				continue;
+				HideTarget = true;
 
 			// If not in between the hard filters, we don't show it.
 			if (Altitude <= RadarFilters.Hard_Low && !IsPrimary)
-				continue;
+				HideTarget = true;
 
 			if (Altitude >= RadarFilters.Hard_High && !IsPrimary)
-				continue;
+				HideTarget = true;
 
 			// If Primary
 			if (IsPrimary && !ButtonsPressed[BUTTON_PRIMARY_TARGETS_ON])
-				continue;
+				HideTarget = true;
 
 			// If VFR
 			if (startsWith("7000", radarTarget.GetPosition().GetSquawk()) && !ButtonsPressed[BUTTON_VFR_ON] && !IsPrimary)
-				continue;
+				HideTarget = true;
 
 			if (isCorrelated && startsWith("V", CorrelatedFlightPlan.GetFlightPlanData().GetPlanType()) && !ButtonsPressed[BUTTON_VFR_ON] && !IsPrimary)
-				continue;
+				HideTarget = true;
 
 			if (Altitude <= RadarFilters.Soft_Low || Altitude >= RadarFilters.Soft_High)
 				IsSoft = true;
@@ -327,11 +351,25 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			IsSoft = false;
 		}
 
+		// if in a state that needs to force filters
+		if (AcState == Tag::TagStates::TransferredToMe || AcState == Tag::TagStates::Assumed) {
+			IsSoft = false;
+			HideTarget = false;
+		}
+
+		//
+		// Final decision
+		//
+		if (HideTarget)
+			continue;
+
 #pragma region BeforeTags
 
 		if (Phase == REFRESH_PHASE_BEFORE_TAGS) {
 			if (!IsPrimary) {
-				CRect r = AcSymbols::DrawSquareAndTrail(&dc, AcState, this, radarTarget, ButtonsPressed[BUTTON_DOTS], IsSoft, isDetailed);
+
+				CRect r = AcSymbols::DrawSquareAndTrail(&dc, AcState, this, radarTarget, ButtonsPressed[BUTTON_DOTS], 
+					IsSoft, StcaInstance->IsSTCA(radarTarget.GetCallsign()), Blink, isDetailed);
 				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, "");
 			}
 			else {
@@ -364,7 +402,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 			map<int, CRect> DetailedTagData;
 
-			RECT r = TagRenderer::Render(&dc, MousePoint, TagOffsets[radarTarget.GetCallsign()], radarTargetPoint, t, isDetailed, &DetailedTagData);
+			RECT r = TagRenderer::Render(&dc, MousePoint, TagOffsets[radarTarget.GetCallsign()], radarTargetPoint, 
+				t, isDetailed, StcaInstance->IsSTCA(radarTarget.GetCallsign()), &DetailedTagData);
 
 			RECT SymbolArea = { radarTargetPoint.x - DRAWING_AC_SQUARE_SYMBOL_SIZE, radarTargetPoint.y - DRAWING_AC_SQUARE_SYMBOL_SIZE,
 				radarTargetPoint.x + DRAWING_AC_SQUARE_SYMBOL_SIZE, radarTargetPoint.y + DRAWING_AC_SQUARE_SYMBOL_SIZE };
@@ -374,7 +413,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				DetailedTag = "";
 
 			// Store the tag for tag deconfliction
-			TagAreas[radarTarget.GetCallsign()] = r;
+			if (!IsSoft)
+				TagAreas[radarTarget.GetCallsign()] = r;
 
 			// We add the screen rect
 			AddScreenObject(SCREEN_TAG, radarTarget.GetCallsign(), r, true, "");
@@ -384,6 +424,162 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				for (auto kv : DetailedTagData) {
 					AddScreenObject(kv.first, radarTarget.GetCallsign(), kv.second, false, "");
 				}
+			}
+
+			// If the route is shown, then we display it
+			if (find(RouteBeingShown.begin(), RouteBeingShown.end(), radarTarget.GetCallsign()) != RouteBeingShown.end()) {
+				int SaveRoute = dc.SaveDC();
+				
+				CFlightPlanExtractedRoute exR = CheatFlightPlan.GetExtractedRoute();
+				int index = exR.GetPointsAssignedIndex();
+				if (index < 0)
+					index = exR.GetPointsCalculatedIndex();
+
+				bool isLastTextOnLeftSide = false;
+
+				for (int i = index; i < exR.GetPointsNumber(); i++)
+				{
+					POINT exRPos = ConvertCoordFromPositionToPixel(exR.GetPointPosition(i));
+
+					Color routeColor = Colours::AirwayColors;
+
+					if (exR.GetPointAirwayClassification(i) == AIRWAY_CLASS_DIRECTION_ERROR ||
+						exR.GetPointAirwayClassification(i) == AIRWAY_CLASS_UNCONNECTED) {
+						routeColor = Gdiplus::Color::Red;
+					}
+
+					CPen routePen(PS_SOLID, 1, routeColor.ToCOLORREF());
+					CPen* oldPen = dc.SelectObject(&routePen);
+					dc.SetTextColor(routeColor.ToCOLORREF());
+
+					bool isTextOnLeftSide = false;
+
+					if (i == index)
+					{
+						dc.MoveTo(radarTargetPoint);
+						dc.LineTo(exRPos);
+						if (radarTarget.GetPosition().GetPosition().DistanceTo(exR.GetPointPosition(i)) < 10)
+						{
+							if (!isLastTextOnLeftSide)
+							{
+								isTextOnLeftSide = true;
+								isLastTextOnLeftSide = true;
+							}
+						}
+					}
+					else
+					{
+						dc.MoveTo(ConvertCoordFromPositionToPixel(exR.GetPointPosition(i - 1)));
+						dc.LineTo(exRPos);
+
+						if (exR.GetPointPosition(i).DistanceTo(exR.GetPointPosition(i - 1)) < 10)
+						{
+							if (!isLastTextOnLeftSide)
+							{
+								isTextOnLeftSide = true;
+								isLastTextOnLeftSide = true;
+							}
+						}
+					}
+
+					if (!isTextOnLeftSide)
+						isLastTextOnLeftSide = false;
+
+					// Selecting top or left right
+
+					bool isTextTop = false;
+					if (i == index)
+					{
+						int br = (int)radarTarget.GetPosition().GetPosition().DirectionTo(exR.GetPointPosition(i));
+						if ((br > 70 && br < 110) || (br > 250 && br < 290))
+						{
+							isTextTop = true;
+						}
+					}
+					else
+					{
+						int br = (int)exR.GetPointPosition(i - 1).DirectionTo(exR.GetPointPosition(i));
+						if ((br > 70 && br < 110) || (br > 250 && br < 290))
+						{
+							isTextTop = true;
+						}
+					}
+
+					dc.MoveTo(exRPos.x, exRPos.y - 3);
+					dc.LineTo(exRPos.x - 3, exRPos.y + 3);
+					dc.LineTo(exRPos.x + 3, exRPos.y + 3);
+					dc.LineTo(exRPos.x, exRPos.y - 3);
+					string actions = CheatFlightPlan.GetCallsign();
+					actions += ",";
+					actions += std::to_string(i);
+
+					string pointName = exR.GetPointName(i);
+					if (pointName == string(CheatFlightPlan.GetControllerAssignedData().GetDirectToPointName()))
+					{
+						pointName = "->" + pointName;
+					}
+
+					string temp = "+" + to_string(exR.GetPointDistanceInMinutes(i));
+					temp += "' ";
+
+					// Converting the profile altitude to FL/Altitude
+
+					int fl = exR.GetPointCalculatedProfileAltitude(i);
+					if (fl <= GetPlugIn()->GetTransitionAltitude()) {
+						fl = exR.GetPointCalculatedProfileAltitude(i);
+						temp += padWithZeros(std::to_string(GetPlugIn()->GetTransitionAltitude()).size(), fl);
+					}
+					else
+					{
+						temp += "FL" + padWithZeros(5, fl).substr(0, 3);
+					}
+
+					if (isTextOnLeftSide)
+					{
+						if (isTextTop)
+						{
+							dc.SetTextAlign(TA_LEFT | TA_BASELINE);
+							dc.TextOutA(exRPos.x, exRPos.y - 25, pointName.c_str());
+							dc.TextOutA(exRPos.x, exRPos.y - 10, temp.c_str());
+							dc.MoveTo(exRPos);
+							dc.LineTo({ exRPos.x, exRPos.y - 10 });
+						}
+						else
+						{
+							dc.SetTextAlign(TA_RIGHT | TA_BASELINE);
+							dc.TextOutA(exRPos.x - 15, exRPos.y, pointName.c_str());
+							dc.TextOutA(exRPos.x - 15, exRPos.y + 10, temp.c_str());
+							dc.MoveTo(exRPos);
+							dc.LineTo({ exRPos.x - 15, exRPos.y });
+						}
+
+					}
+					else
+					{
+						if (isTextTop)
+						{
+							dc.SetTextAlign(TA_LEFT | TA_TOP);
+							dc.TextOutA(exRPos.x, exRPos.y + 10, pointName.c_str());
+							dc.TextOutA(exRPos.x, exRPos.y + 25, temp.c_str());
+							dc.MoveTo(exRPos);
+							dc.LineTo({ exRPos.x, exRPos.y + 10 });
+						}
+						else
+						{
+							dc.SetTextAlign(TA_BASELINE | TA_LEFT);
+							dc.TextOutA(exRPos.x + 5, exRPos.y + 10, pointName.c_str());
+							dc.TextOutA(exRPos.x + 5, exRPos.y + 25, temp.c_str());
+							dc.MoveTo(exRPos);
+							dc.LineTo({ exRPos.x + 5, exRPos.y });
+						}
+
+					}
+
+					dc.SelectObject(&oldPen);
+
+				}
+
+				dc.RestoreDC(SaveRoute);
 			}
 		}
 
@@ -410,14 +606,14 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			CRadarTarget rt = GetPlugIn()->RadarTargetSelect(areas.first.c_str());
 			POINT AcPosition = ConvertCoordFromPositionToPixel(rt.GetPosition().GetPosition());
 
-			int DistanceBetweenTag = (int)sqrt(pow(TagOffsets[areas.first.c_str()].x - AcPosition.x, 2) +
-				pow(TagOffsets[areas.first.c_str()].y - AcPosition.y, 2));
+			int DistanceBetweenTag = (int)sqrt(pow(TagOffsets[areas.first.c_str()].x, 2) +
+				pow(TagOffsets[areas.first.c_str()].y, 2));
 
 			// If the tag has recently been automatically moved, then we don't move it
 			if (RecentlyAutoMovedTags.find(areas.first) != RecentlyAutoMovedTags.end())
 			{
-				double t = (double)clock() - RecentlyAutoMovedTags[areas.first] / ((double)CLOCKS_PER_SEC);
-				if (t >= 1)
+				double t = (double)(clock() - RecentlyAutoMovedTags[areas.first]) / ((double)CLOCKS_PER_SEC);
+				if (t >= 4)
 					RecentlyAutoMovedTags.erase(areas.first);
 				else
 					continue;
@@ -426,76 +622,80 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			CRect OriginalArea = areas.second;
 
 			CRect TestArea = OriginalArea;
+			POINT topLeftOriginal = { OriginalArea.left, OriginalArea.top };
 			int options = 0;
-			bool IsConflicting = true;
+			bool IsConflicting = false;
 
-			double AdjustedLineHeading = fmod(rt.GetTrackHeading() - 90.0, 360.0);
-			while (IsConflicting && options <= 10) {
+			double AdjustedLineHeading = fmod(rt.GetTrackHeading() + 90, 360.0);
 
+			// Calculating the size of the leader line
+			int GoodDistance = DistanceBetweenTag;
+			if (DistanceBetweenPixels(AcPosition, topLeftOriginal) < OriginalArea.Size().cx+5) {
+				GoodDistance = OriginalArea.Size().cx;
+			}
+			else {
+				GoodDistance = 55;
+			}
+			vector<double> Angles = { 110, 140, 90, -110, -140, -90, };
+
+			//
+			// TEST
+			//
+			/*
+			int saveTest = dc.SaveDC();
+
+			CPen PurplePen(PS_SOLID, 1, Colours::PurpleDisplay.ToCOLORREF());
+			dc.SelectObject(&PurplePen);
+			dc.SelectStockObject(NULL_BRUSH);
+			dc.SetTextColor(Colours::PurpleDisplay.ToCOLORREF());
+			
+			int i = 1;
+			for (double angle : Angles) {
+				double d = fmod(AdjustedLineHeading + angle, 360);
+
+				POINT pt;
+				pt.x = long(AcPosition.x + float(GoodDistance * cos(DegToRad(d))));
+				pt.y = long(AcPosition.y + float(GoodDistance * sin(DegToRad(d))));
+				
+				dc.TextOutA(pt.x, pt.y, to_string(i).c_str());
+
+				CRect newArea = { pt.x, pt.y, pt.x + OriginalArea.Size().cx, pt.y + OriginalArea.Size().cy };
+				dc.Rectangle(newArea);
+
+				i++;
+			}
+
+			dc.RestoreDC(saveTest);*/
+			// END TEST
+
+			// let's check if there is a conflict
+			for (auto kv : TagAreas) {
+				if (kv.first == areas.first)
+					continue;
+
+				if (kv.first == DetailedTag)
+					continue;
+
+				CRect h;
+				if (h.IntersectRect(TestArea, kv.second)) {
+					IsConflicting = true;
+					break;
+				}
+			}
+
+			// No conflict, we stop
+			if (!IsConflicting)
+				continue;
+
+			// There is a conflict, we move the tag
+			for (double angle : Angles) {
 				POINT TopLeftTag;
-				double NewAngle = 0;
-				// We run through the options
-				if (options == 1) {
-					NewAngle = fmod(AdjustedLineHeading + 30, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 2) {
-					NewAngle = fmod(AdjustedLineHeading + 60, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 3) {
-					NewAngle = fmod(AdjustedLineHeading + 90, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 4) {
-					NewAngle = fmod(AdjustedLineHeading + 120, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 5) {
-					NewAngle = fmod(AdjustedLineHeading + 130, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 6) {
-					NewAngle = fmod(AdjustedLineHeading - 30, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 7) {
-					NewAngle = fmod(AdjustedLineHeading - 60, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 8) {
-					NewAngle = fmod(AdjustedLineHeading - 90, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 9) {
-					NewAngle = fmod(AdjustedLineHeading - 120, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
-				if (options == 10) {
-					NewAngle = fmod(AdjustedLineHeading - 130, 360);
-					TopLeftTag.x = long(AcPosition.x + float(40 * cos(DegToRad(NewAngle))));
-					TopLeftTag.y = long(AcPosition.y + float(40 * sin(DegToRad(NewAngle))));
-					TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + areas.second.right, TopLeftTag.y + areas.second.bottom };
-				}
+				double NewAngle = fmod(AdjustedLineHeading + angle, 360);
 
+				TopLeftTag.x = long(AcPosition.x + float(GoodDistance * cos(DegToRad(NewAngle))));
+				TopLeftTag.y = long(AcPosition.y + float(GoodDistance * sin(DegToRad(NewAngle))));
+				TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + OriginalArea.Size().cx, TopLeftTag.y + OriginalArea.Size().cy };
+				
 				IsConflicting = false;
 				// We check for conflicts
 				for (auto kv : TagAreas) {
@@ -512,11 +712,12 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 					}
 				}
 
-				options++;
+				if (!IsConflicting)
+					break;
 			}
-
+			
 			// If the tag has been moved
-			if (options != 0) {
+			if (TestArea != OriginalArea && !IsConflicting) {
 				TagOffsets[areas.first] = { TestArea.left - AcPosition.x, TestArea.top - AcPosition.y };
 				TagAreas[areas.first] = TestArea;
 				RecentlyAutoMovedTags[areas.first] = clock();
@@ -554,7 +755,7 @@ void RadarScreen::OnOverScreenObject(int ObjectType, const char * sObjectId, POI
 void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
 {
 	// Handle button menu click
-	if (ObjectType >= BUTTON_HIDEMENU && ObjectType < BUTTON_DOTS && Button == BUTTON_LEFT) {
+	if (ObjectType >= BUTTON_HIDEMENU && ObjectType <= BUTTON_DOTS && Button == BUTTON_LEFT) {
 		if (ObjectType >= BUTTON_VEL1 && ObjectType <= BUTTON_VEL8 && !ButtonsPressed[ObjectType])
 			ButtonsPressed = MenuBar::ResetAllVelButtons(ButtonsPressed);
 
@@ -612,6 +813,27 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		}
 	}
 
+	if (ObjectType == SCREEN_AC_SYMBOL) {
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		POINT AcPosition = ConvertCoordFromPositionToPixel(rt.GetPosition().GetPosition());
+
+		int DistanceBetweenTag = (int)sqrt(pow(TagOffsets[sObjectId].x, 2) +
+			pow(TagOffsets[sObjectId].y, 2));
+
+		double angle = RadToDeg(atan2(TagOffsets[sObjectId].y, TagOffsets[sObjectId].x));
+
+		if (Button == BUTTON_LEFT)
+			angle = fmod(angle - 30, 360);
+		if (Button == BUTTON_RIGHT)
+			angle = fmod(angle + 30, 360);
+
+		POINT TopLeftTag;
+		TopLeftTag.x = long(AcPosition.x + float(DistanceBetweenTag * cos(DegToRad(angle))));
+		TopLeftTag.y = long(AcPosition.y + float(DistanceBetweenTag * sin(DegToRad(angle))));
+
+		TagOffsets[sObjectId] = { TopLeftTag.x-AcPosition.x, TopLeftTag.y - AcPosition.y };
+	}
+
 	if (ObjectType == SCREEN_SEP_TOOL) {
 		vector<string> s = split(sObjectId, ',');
 		pair<string, string> toRemove = pair<string, string>(s.front(), s.back());
@@ -646,8 +868,15 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		if (ObjectType == SCREEN_TAG_SECTOR)
 			FunctionId = TAG_ITEM_FUNCTION_ASSIGNED_NEXT_CONTROLLER;
 
-		if (ObjectType == SCREEN_TAG_ROUTE)
-			FunctionId = TAG_ITEM_FUNCTION_TOGGLE_PREDICTION_DRAW;
+		if (ObjectType == SCREEN_TAG_ROUTE) {
+			if (find(RouteBeingShown.begin(), RouteBeingShown.end(), sObjectId) != RouteBeingShown.end()) {
+				RouteBeingShown.erase(find(RouteBeingShown.begin(), RouteBeingShown.end(), sObjectId));
+			}
+			else {
+				RouteBeingShown.push_back(sObjectId);
+			}
+		}
+			
 
 		if (ObjectType == SCREEN_TAG_CFL)
 			FunctionId = TAG_ITEM_FUNCTION_TEMP_ALTITUDE_POPUP;
@@ -689,6 +918,9 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 				AcquiringSepTool = sObjectId;
 
 		}
+
+		if (ObjectType == SCREEN_TAG_WARNING)
+			FunctionId = TAG_ITEM_FUNCTION_SQUAWK_POPUP;
 
 		if (FunctionId != TAG_ITEM_FUNCTION_NO) {
 			StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
