@@ -152,6 +152,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AcSymbols.h" />
+    <ClInclude Include="AntiOverlap.h" />
     <ClInclude Include="Colours.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Helper.h" />

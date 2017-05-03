@@ -439,7 +439,12 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 				for (int i = index; i < exR.GetPointsNumber(); i++)
 				{
+					
 					POINT exRPos = ConvertCoordFromPositionToPixel(exR.GetPointPosition(i));
+
+					if (exR.GetPointDistanceInMinutes(i) == -1) {
+						continue;
+					}
 
 					Color routeColor = Colours::AirwayColors;
 
@@ -641,35 +646,42 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			//
 			// TEST
 			//
-			/*
-			int saveTest = dc.SaveDC();
+			
+			/*int saveTest = dc.SaveDC();
 
 			CPen PurplePen(PS_SOLID, 1, Colours::PurpleDisplay.ToCOLORREF());
 			dc.SelectObject(&PurplePen);
 			dc.SelectStockObject(NULL_BRUSH);
 			dc.SetTextColor(Colours::PurpleDisplay.ToCOLORREF());
 			
-			int i = 1;
-			for (double angle : Angles) {
-				double d = fmod(AdjustedLineHeading + angle, 360);
+			int TileWidth = OriginalArea.Size().cx + (int)(OriginalArea.Size().cx*0.20);
+			int TileHeight = OriginalArea.Size().cy + (int)(OriginalArea.Size().cy*0.05);
 
-				POINT pt;
-				pt.x = long(AcPosition.x + float(GoodDistance * cos(DegToRad(d))));
-				pt.y = long(AcPosition.y + float(GoodDistance * sin(DegToRad(d))));
-				
-				dc.TextOutA(pt.x, pt.y, to_string(i).c_str());
+			map<int, CRect> testingGrid = AntiOverlap::BuildGrid(AcPosition, TileWidth, TileHeight);
+			map<int, int> gridCost = AntiOverlap::CalculateGridCost(this, TagAreas, TagOffsets, testingGrid, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);
 
-				CRect newArea = { pt.x, pt.y, pt.x + OriginalArea.Size().cx, pt.y + OriginalArea.Size().cy };
-				dc.Rectangle(newArea);
+			for (auto testGridkv : testingGrid) {
+				dc.Rectangle(testGridkv.second);
+				string str = to_string(testGridkv.first);
+				str += " " +to_string(gridCost[testGridkv.first]);
 
-				i++;
+				dc.TextOutA(testGridkv.second.left, testGridkv.second.top, str.c_str());
 			}
+			
 
-			dc.RestoreDC(saveTest);*/
+			dc.RestoreDC(saveTest); */
 			// END TEST
 
+			POINT newOffset = AntiOverlap::Execute(this, TagAreas, TagOffsets, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);
+
+			if (newOffset.x != TagOffsets[rt.GetCallsign()].x && newOffset.y != TagOffsets[rt.GetCallsign()].y) {
+				TagOffsets[areas.first] = newOffset;
+				TagAreas[areas.first] = { newOffset.x, newOffset.y, newOffset.x + OriginalArea.Size().cx, newOffset.y + OriginalArea.Size().cy };
+				RecentlyAutoMovedTags[areas.first] = clock();
+			}
+
 			// let's check if there is a conflict
-			for (auto kv : TagAreas) {
+			/*for (auto kv : TagAreas) {
 				if (kv.first == areas.first)
 					continue;
 
@@ -721,7 +733,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				TagOffsets[areas.first] = { TestArea.left - AcPosition.x, TestArea.top - AcPosition.y };
 				TagAreas[areas.first] = TestArea;
 				RecentlyAutoMovedTags[areas.first] = clock();
-			}
+			}*/
 		}
 	}
 

@@ -9,6 +9,7 @@
 #include "MenuBar.h"
 #include "Helper.h"
 #include "STCA.h"
+#include "AntiOverlap.h"
 #include "EuroScopePlugIn.h"
 
 using namespace std;
