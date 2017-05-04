@@ -59,12 +59,12 @@ public:
 
 	// Tag Object
 
-	Tag(TagStates State, bool IsMagnified, bool IsSoft, CRadarScreen* radarScreen, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
+	Tag(TagStates State, bool IsMagnified, bool IsSoft, bool isModeAButton, bool isVButton, CRadarScreen* radarScreen, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
 
 		this->IsMagnified = IsMagnified;
 		this->IsSoft = IsSoft;
 
-		map<string, string> TagReplacementMap = GenerateTag(radarScreen, IsMagnified, RadarTarget, FlightPlan);
+		map<string, string> TagReplacementMap = GenerateTag(radarScreen, IsMagnified, isModeAButton, RadarTarget, FlightPlan);
 
 		if (State == TagStates::NotConcerned && IsSoft)
 			Definition = MinimizedTag;
@@ -112,7 +112,7 @@ public:
 	bool IsSoft;
 
 protected:
-	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isMagnified, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
+	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isMagnified, bool isModeAButton, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
 
 		map<string, string> TagReplacementMap;
 
@@ -191,10 +191,15 @@ protected:
 
 			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
 			const char * ssr = RadarTarget.GetPosition().GetSquawk();
-			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+			if (isModeAButton) {
 				if (warning.length() != 0)
 					warning += " ";
-				warning += "A" + string(assr);
+				warning += "A" + string(ssr);
+			}
+			else if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+				if (warning.length() != 0)
+					warning += " ";
+				warning += string(assr);
 			}
 			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
 				if (warning.length() != 0)

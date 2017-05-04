@@ -157,6 +157,7 @@
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Helper.h" />
     <ClInclude Include="MenuBar.h" />
+    <ClInclude Include="MTCD.h" />
     <ClInclude Include="MUAC.h" />
     <ClInclude Include="RadarScreen.h" />
     <ClInclude Include="resource.h" />

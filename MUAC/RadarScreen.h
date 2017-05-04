@@ -9,6 +9,7 @@
 #include "MenuBar.h"
 #include "Helper.h"
 #include "STCA.h"
+#include "MTCD.h"
 #include "AntiOverlap.h"
 #include "EuroScopePlugIn.h"
 
@@ -43,10 +44,12 @@ private:
 	map<int, bool> ButtonsPressed;
 	multimap<string, string> SepToolPairs;
 	map<string, CRect> TagAreas;
+	map<string, CRect> SoftTagAreas;
 	map <string, clock_t> RecentlyAutoMovedTags;
 	vector<string> RouteBeingShown;
 	POINT MousePoint = { 0, 0 };
 	CSTCA * StcaInstance;
+	CMTCD * MtcdInstance;
 	string DetailedTag = "";
 	clock_t OneSecondTimer;
 	clock_t HalfSecondTimer;

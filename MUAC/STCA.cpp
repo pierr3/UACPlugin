@@ -34,7 +34,7 @@ void CSTCA::OnRefresh(CPlugIn * pl)
 		if (rt.GetPosition().GetRadarFlags() == EuroScopePlugIn::RADAR_POSITION_PRIMARY)
 			continue;
 		
-		if (rt.GetPosition().GetPressureAltitude() < 5000)
+		if (rt.GetPosition().GetPressureAltitude() < disable_level)
 			continue;
 		
 		if (strcmp(rt.GetPosition().GetSquawk(), "7000") == 0)
@@ -51,38 +51,36 @@ void CSTCA::OnRefresh(CPlugIn * pl)
 		conflicting.IsValid();
 			conflicting = pl->RadarTargetSelectNext(conflicting))
 		{
-			int distance_mini = 5;
-			int time_to_extrapolate = 180;
+			int separation_distance = high_level_sep;
+			int extrapolationTime = time_to_extrapolate;
 
 			if (rt.GetCallsign() == conflicting.GetCallsign())
 				continue;
 
-			if (rt.GetPosition().GetPressureAltitude() <= 14500 || conflicting.GetPosition().GetPressureAltitude() <= 14500)
+			if (rt.GetPosition().GetPressureAltitude() <= level_reduced_sep 
+				&& conflicting.GetPosition().GetPressureAltitude() <= level_reduced_sep)
 			{
-				distance_mini = 3;
-				time_to_extrapolate = 60;
+				separation_distance = low_level_sep;
+				extrapolationTime = 120;
 			}
 
 			if (conflicting.GetPosition().GetRadarFlags() == EuroScopePlugIn::RADAR_POSITION_PRIMARY)
 				continue;
 
-			if (rt.GetPosition().GetPosition().DistanceTo(conflicting.GetPosition().GetPosition()) > 10)
+			if (conflicting.GetPosition().GetPressureAltitude() < disable_level)
 				continue;
 
-			if (conflicting.GetPosition().GetPressureAltitude() < 5000)
+			if (strcmp(conflicting.GetPosition().GetSquawk(), "7000") == 0)
 				continue;
 
-			if (strcmp(rt.GetPosition().GetSquawk(), "7000") == 0)
-				continue;
-
-			if (rt.GetCorrelatedFlightPlan().IsValid())
+			if (conflicting.GetCorrelatedFlightPlan().IsValid())
 			{
-				if (rt.GetCorrelatedFlightPlan().GetFlightPlanData().GetPlanType() == "V")
+				if (conflicting.GetCorrelatedFlightPlan().GetFlightPlanData().GetPlanType() == "V")
 					continue;
 			}
 
-			if (rt.GetPosition().GetPosition().DistanceTo(conflicting.GetPosition().GetPosition()) < distance_mini &&
-				abs(rt.GetPosition().GetPressureAltitude()-conflicting.GetPosition().GetPressureAltitude()) < 900)
+			if (rt.GetPosition().GetPosition().DistanceTo(conflicting.GetPosition().GetPosition()) < separation_distance &&
+				abs(rt.GetPosition().GetPressureAltitude()-conflicting.GetPosition().GetPressureAltitude()) < altitude_sep)
 			{
 				if (std::find(Alerts.begin(), Alerts.end(), rt.GetCallsign()) == Alerts.end()) 
 					Alerts.push_back(rt.GetCallsign());
@@ -91,7 +89,7 @@ void CSTCA::OnRefresh(CPlugIn * pl)
 				continue;
 			}
 				
-			for (int i = 10; i <= time_to_extrapolate; i += 10)
+			for (int i = 30; i <= time_to_extrapolate; i += 30)
 			{
 				CPosition ex1 = Extrapolate(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), double(rt.GetPosition().GetReportedGS()*0.514444)*(i));
 				CPosition ex2 = Extrapolate(conflicting.GetPosition().GetPosition(), conflicting.GetTrackHeading(), double(conflicting.GetPosition().GetReportedGS()*0.514444)*(i));
@@ -117,12 +115,12 @@ void CSTCA::OnRefresh(CPlugIn * pl)
 						vz2 = dalt2 * (i / dt2);
 					}
 
-					alt1 += vz1;
-					alt2 += vz2;
+					alt1 += (vz1/60)*i;
+					alt2 += (vz2/60)*i;
 				}
 
-				if (ex1.DistanceTo(ex2) < distance_mini && 
-					abs(alt1 - alt2) < 900)
+				if (ex1.DistanceTo(ex2) < separation_distance &&
+					abs(alt1 - alt2) < altitude_sep)
 				{
 					if (std::find(Alerts.begin(), Alerts.end(), rt.GetCallsign()) == Alerts.end())
 						Alerts.push_back(rt.GetCallsign());

@@ -6,6 +6,7 @@ RadarScreen::RadarScreen()
 	// Initialize the Menu Bar
 	MenuButtons = MenuBar::MakeButtonData();
 	StcaInstance = new CSTCA();
+	MtcdInstance = new CMTCD();
 
 	OneSecondTimer = clock();
 	HalfSecondTimer = clock();
@@ -62,10 +63,10 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		double t = (double)(clock() - OneSecondTimer) / ((double)CLOCKS_PER_SEC);
 		if (t >= 1) {
 			StcaInstance->OnRefresh(GetPlugIn());
+			//MtcdInstance->OnRefresh(GetPlugIn());
 			OneSecondTimer = clock();
 		}
 
-		
 		t = (double)(clock() - HalfSecondTimer) / ((double)CLOCKS_PER_SEC);
 		if (t >= 0.5) {
 			Blink = !Blink;
@@ -76,8 +77,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		int saveTool = dc.SaveDC();
 
 		TagAreas.clear();
-
-		
+		SoftTagAreas.clear();
 
 		// Sep tools
 
@@ -150,52 +150,6 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				distanceText += " " + headingText.substr(0, decimal_pos + 2) + "°";
 
 				POINT MidPointDistance = { (int)((FirstPos.x + SecondPos.x) / 2), (int)((FirstPos.y + SecondPos.y) / 2) };
-
-				//
-				// TESTING
-				//
-				/*CPen PurplePen(PS_SOLID, 2, Colours::PurpleDisplay.ToCOLORREF());
-				CPen* oldObject = (CPen*)dc.SelectObject(&PurplePen);
-				COLORREF oldColor = dc.SetTextColor(Colours::PurpleDisplay.ToCOLORREF());
-
-				double NORTH = fmod(0 - 90, 360);
-				double SOUTH = fmod(180 - 90, 360);
-				double EAST = fmod(90 - 90, 360);
-				double WEST = fmod(270 - 90, 360);
-
-				int LENGHT = 100;
-				POINT p = { 0, 0 };
-
-				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(NORTH))));
-				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(NORTH))));
-				dc.MoveTo(MidPointDistance);
-				dc.LineTo(p);
-				dc.TextOutA(p.x, p.y, "N");
-
-				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(EAST))));
-				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(EAST))));
-				dc.MoveTo(MidPointDistance);
-				dc.LineTo(p);
-				dc.TextOutA(p.x, p.y, "E");
-
-				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(SOUTH))));
-				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(SOUTH))));
-				dc.MoveTo(MidPointDistance);
-				dc.LineTo(p);
-				dc.TextOutA(p.x, p.y, "S");
-
-				p.x = long(MidPointDistance.x + float(LENGHT * cos(DegToRad(WEST))));
-				p.y = long(MidPointDistance.y + float(LENGHT * sin(DegToRad(WEST))));
-				dc.MoveTo(MidPointDistance);
-				dc.LineTo(p);
-				dc.TextOutA(p.x, p.y, "W");
-
-				dc.SetTextColor(oldColor);
-				dc.SelectObject(oldObject);
-				//
-				//
-				//
-				*/
 
 				CSize Measure = dc.GetTextExtent(distanceText.c_str());
 
@@ -352,7 +306,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		}
 
 		// if in a state that needs to force filters
-		if (AcState == Tag::TagStates::TransferredToMe || AcState == Tag::TagStates::Assumed) {
+		if (AcState == Tag::TagStates::Redundant || AcState == Tag::TagStates::TransferredFromMe || 
+			AcState == Tag::TagStates::TransferredToMe || AcState == Tag::TagStates::Assumed) {
 			IsSoft = false;
 			HideTarget = false;
 		}
@@ -394,7 +349,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			if (IsPrimary)
 				continue;
 
-			Tag t = Tag(AcState, isDetailed, IsSoft, this, radarTarget, CheatFlightPlan);
+			Tag t = Tag(AcState, isDetailed, IsSoft, ButtonsPressed[BUTTON_MODE_A], 
+				ButtonsPressed[BUTTON_LABEL_V], this, radarTarget, CheatFlightPlan);
 
 			// Getting the tag center
 			if (TagOffsets.find(radarTarget.GetCallsign()) == TagOffsets.end())
@@ -403,7 +359,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			map<int, CRect> DetailedTagData;
 
 			RECT r = TagRenderer::Render(&dc, MousePoint, TagOffsets[radarTarget.GetCallsign()], radarTargetPoint, 
-				t, isDetailed, StcaInstance->IsSTCA(radarTarget.GetCallsign()), &DetailedTagData);
+				t, isDetailed, StcaInstance->IsSTCA(radarTarget.GetCallsign()), MtcdInstance->IsMTCD(radarTarget.GetCallsign()),
+				&DetailedTagData);
 
 			RECT SymbolArea = { radarTargetPoint.x - DRAWING_AC_SQUARE_SYMBOL_SIZE, radarTargetPoint.y - DRAWING_AC_SQUARE_SYMBOL_SIZE,
 				radarTargetPoint.x + DRAWING_AC_SQUARE_SYMBOL_SIZE, radarTargetPoint.y + DRAWING_AC_SQUARE_SYMBOL_SIZE };
@@ -413,8 +370,13 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				DetailedTag = "";
 
 			// Store the tag for tag deconfliction
-			if (!IsSoft)
-				TagAreas[radarTarget.GetCallsign()] = r;
+			if (!isDetailed) {
+				if (IsSoft)
+					SoftTagAreas[radarTarget.GetCallsign()] = r;
+				else
+					TagAreas[radarTarget.GetCallsign()] = r;
+			}
+				
 
 			// We add the screen rect
 			AddScreenObject(SCREEN_TAG, radarTarget.GetCallsign(), r, true, "");
@@ -602,17 +564,14 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		// Menubar
 		MenuBar::DrawMenuBar(&dc, this, { RadarArea.left, RadarArea.top + 1 }, MousePoint, MenuButtons, ButtonsPressed);
 
-		// Tag deconfliction
-		for (const auto areas : TagAreas)
+		// Soft Tag deconfliction
+		for (const auto areas : SoftTagAreas)
 		{
 			if (areas.first == DetailedTag)
 				continue;
 
 			CRadarTarget rt = GetPlugIn()->RadarTargetSelect(areas.first.c_str());
 			POINT AcPosition = ConvertCoordFromPositionToPixel(rt.GetPosition().GetPosition());
-
-			int DistanceBetweenTag = (int)sqrt(pow(TagOffsets[areas.first.c_str()].x, 2) +
-				pow(TagOffsets[areas.first.c_str()].y, 2));
 
 			// If the tag has recently been automatically moved, then we don't move it
 			if (RecentlyAutoMovedTags.find(areas.first) != RecentlyAutoMovedTags.end())
@@ -626,23 +585,35 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 			CRect OriginalArea = areas.second;
 
-			CRect TestArea = OriginalArea;
-			POINT topLeftOriginal = { OriginalArea.left, OriginalArea.top };
-			int options = 0;
-			bool IsConflicting = false;
+			POINT newOffset = AntiOverlap::Execute(this, SoftTagAreas, TagOffsets, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);
 
-			double AdjustedLineHeading = fmod(rt.GetTrackHeading() + 90, 360.0);
-
-			// Calculating the size of the leader line
-			int GoodDistance = DistanceBetweenTag;
-			if (DistanceBetweenPixels(AcPosition, topLeftOriginal) < OriginalArea.Size().cx+5) {
-				GoodDistance = OriginalArea.Size().cx;
+			if (newOffset.x != TagOffsets[rt.GetCallsign()].x && newOffset.y != TagOffsets[rt.GetCallsign()].y) {
+				TagOffsets[areas.first] = newOffset;
+				SoftTagAreas[areas.first] = { newOffset.x, newOffset.y, newOffset.x + OriginalArea.Size().cx, newOffset.y + OriginalArea.Size().cy };
+				RecentlyAutoMovedTags[areas.first] = clock();
 			}
-			else {
-				GoodDistance = 55;
-			}
-			vector<double> Angles = { 110, 140, 90, -110, -140, -90, };
+		}
 
+		// Tag deconfliction
+		for (const auto areas : TagAreas)
+		{
+			if (areas.first == DetailedTag)
+				continue;
+
+			CRadarTarget rt = GetPlugIn()->RadarTargetSelect(areas.first.c_str());
+			POINT AcPosition = ConvertCoordFromPositionToPixel(rt.GetPosition().GetPosition());
+
+			// If the tag has recently been automatically moved, then we don't move it
+			if (RecentlyAutoMovedTags.find(areas.first) != RecentlyAutoMovedTags.end())
+			{
+				double t = (double)(clock() - RecentlyAutoMovedTags[areas.first]) / ((double)CLOCKS_PER_SEC);
+				if (t >= 4)
+					RecentlyAutoMovedTags.erase(areas.first);
+				else
+					continue;
+			}
+
+			CRect OriginalArea = areas.second;
 			//
 			// TEST
 			//
@@ -679,61 +650,6 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				TagAreas[areas.first] = { newOffset.x, newOffset.y, newOffset.x + OriginalArea.Size().cx, newOffset.y + OriginalArea.Size().cy };
 				RecentlyAutoMovedTags[areas.first] = clock();
 			}
-
-			// let's check if there is a conflict
-			/*for (auto kv : TagAreas) {
-				if (kv.first == areas.first)
-					continue;
-
-				if (kv.first == DetailedTag)
-					continue;
-
-				CRect h;
-				if (h.IntersectRect(TestArea, kv.second)) {
-					IsConflicting = true;
-					break;
-				}
-			}
-
-			// No conflict, we stop
-			if (!IsConflicting)
-				continue;
-
-			// There is a conflict, we move the tag
-			for (double angle : Angles) {
-				POINT TopLeftTag;
-				double NewAngle = fmod(AdjustedLineHeading + angle, 360);
-
-				TopLeftTag.x = long(AcPosition.x + float(GoodDistance * cos(DegToRad(NewAngle))));
-				TopLeftTag.y = long(AcPosition.y + float(GoodDistance * sin(DegToRad(NewAngle))));
-				TestArea = { TopLeftTag.x, TopLeftTag.y, TopLeftTag.x + OriginalArea.Size().cx, TopLeftTag.y + OriginalArea.Size().cy };
-				
-				IsConflicting = false;
-				// We check for conflicts
-				for (auto kv : TagAreas) {
-					if (kv.first == areas.first)
-						continue;
-
-					if (kv.first == DetailedTag)
-						continue;
-
-					CRect h;
-					if (h.IntersectRect(TestArea, kv.second)) {
-						IsConflicting = true;
-						break;
-					}
-				}
-
-				if (!IsConflicting)
-					break;
-			}
-			
-			// If the tag has been moved
-			if (TestArea != OriginalArea && !IsConflicting) {
-				TagOffsets[areas.first] = { TestArea.left - AcPosition.x, TestArea.top - AcPosition.y };
-				TagAreas[areas.first] = TestArea;
-				RecentlyAutoMovedTags[areas.first] = clock();
-			}*/
 		}
 	}
 

@@ -12,7 +12,7 @@ using namespace Gdiplus;
 
 class TagRenderer {
 public:
-	static RECT Render(CDC* dc, POINT MousePt, POINT TagOffset, POINT AcPosition, Tag tag, bool isDetailed, bool isStca, map<int, CRect>* DetailedTagClicks) {
+	static RECT Render(CDC* dc, POINT MousePt, POINT TagOffset, POINT AcPosition, Tag tag, bool isDetailed, bool isStca, bool isMtcd, map<int, CRect>* DetailedTagClicks) {
 		
 		vector<vector<TagItem>> Definition = tag.Definition;
 
@@ -110,7 +110,7 @@ public:
 					TagTopLeft.x + leftOffset + MeasureRect.cx, TagTopLeft.y + topOffset + MeasureRect.cy);
 
 				// Here we also dispaly the rectangle if the mouse cursor is in it
-				if ((IsInRect(MousePt, TextBox) && isDetailed) || (isStca && TagItem.TagType == "Callsign")) {
+				if ((IsInRect(MousePt, TextBox) && isDetailed) || ((isStca || isMtcd) && TagItem.TagType == "Callsign")) {
 					CPen YellowPen(PS_SOLID, 1, Colours::YellowWarning.ToCOLORREF());
 					dc->SelectObject(&YellowPen);
 					dc->SelectStockObject(NULL_BRUSH);

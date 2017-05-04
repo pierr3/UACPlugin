@@ -3,8 +3,9 @@
 #include "Helper.h"
 #include <vector>
 #include <map>
-#include <string>
 #include "EuroScopePlugIn.h"
+#include <string>
+
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -82,15 +83,24 @@ private:
 		return 100* overlapCost + 10 * angleCost + 2 * distanceCost;
 	};
 
-	static bool IsConflicting(CRect Area, map<string, CRect> TagAreas) {
+	static bool IsConflicting(CRadarScreen* instance, CRect Area, map<string, CRect> TagAreas) {
 		bool IsConflicting = false;
 		// We check for conflicts
 		for (auto kv : TagAreas) {
 			if (kv.second == Area)
 				continue;
 
+			POINT acPt = instance->ConvertCoordFromPositionToPixel(instance->GetPlugIn()->RadarTargetSelect(kv.first.c_str()).GetPosition().GetPosition());
+
+			// If tags intersect
 			CRect h;
 			if (h.IntersectRect(Area, kv.second)) {
+				IsConflicting = true;
+				break;
+			}
+
+			// If symbols overlap
+			if (IsInRect(acPt, Area)) {
 				IsConflicting = true;
 				break;
 			}
@@ -133,7 +143,7 @@ public:
 	static POINT Execute(CRadarScreen* instance, map<string, CRect> TagAreas, map<string, POINT> TagOffsets, int vvTime, CRadarTarget radarTarget) {
 		POINT AcPoint = instance->ConvertCoordFromPositionToPixel(radarTarget.GetPosition().GetPosition());
 		
-		if (IsConflicting(TagAreas[radarTarget.GetCallsign()], TagAreas)) {
+		if (IsConflicting(instance, TagAreas[radarTarget.GetCallsign()], TagAreas)) {
 			int TileWidth = TagAreas[radarTarget.GetCallsign()].Size().cx + (int)(TagAreas[radarTarget.GetCallsign()].Size().cx*0.20);
 			int TileHeight = TagAreas[radarTarget.GetCallsign()].Size().cy + (int)(TagAreas[radarTarget.GetCallsign()].Size().cy*0.05);
 
