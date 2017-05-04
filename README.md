@@ -1,6 +1,8 @@
 # Upper Area Control PlugIn
 
-![UAC PlugIn header](https://pierr3.github.io/UACPlugin/img/header.png)
+<p align="center">
+	<img alt="UAC PlugIn header" src="https://pierr3.github.io/UACPlugin/img/header.png"/>
+</p>
 
 Features:
 
