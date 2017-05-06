@@ -42,6 +42,8 @@ public:
 	TagItem ReportedGS = TagItem::CreatePassive("ReportedGS");
 	TagItem VerticalRate = TagItem::CreatePassive("VerticalRate");
 
+	TagItem AssignedSpeed = TagItem::CreatePassive("AssignedSpeed", SCREEN_TAG_ASPEED);
+
 	TagItem RouteDisplay = TagItem::CreatePassive("R", SCREEN_TAG_ROUTE);
 	TagItem SepItem = TagItem::CreatePassive("V", SCREEN_TAG_SEP);
 
@@ -49,13 +51,15 @@ public:
 
 	// Tag definitions
 	const vector<vector<TagItem>> MinimizedTag = { { AltitudeItem, TendencyItem } };
-	const vector<vector<TagItem>> StandardTag = { { CoumpoundWarning }, { CallsignItem }, { AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem }, { XFLItem, COPItem } };
+	const vector<vector<TagItem>> StandardTag = { { CoumpoundWarning }, { CallsignItem }, 
+	{ AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem }, 
+	{ XFLItem, COPItem }, { ReportedGS, AssignedSpeed } };
 	const vector<vector<TagItem>> MagnifiedTag = { 
 	{ CoumpoundWarning },
 	{ SepItem, CallsignItem, SectorItem },
 	{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
 	{ BlankItem, XFLItem, COPItem, RFLItem },
-	{ BlankItem, ReportedGS, VerticalRate } };
+	{ BlankItem, ReportedGS, AssignedSpeed } };
 
 	// Tag Object
 
@@ -64,7 +68,7 @@ public:
 		this->IsMagnified = IsMagnified;
 		this->IsSoft = IsSoft;
 
-		map<string, string> TagReplacementMap = GenerateTag(radarScreen, IsMagnified, isModeAButton, RadarTarget, FlightPlan);
+		map<string, string> TagReplacementMap = GenerateTag(radarScreen, isVButton, isModeAButton, RadarTarget, FlightPlan);
 
 		if (State == TagStates::NotConcerned && IsSoft)
 			Definition = MinimizedTag;
@@ -112,7 +116,7 @@ public:
 	bool IsSoft;
 
 protected:
-	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isMagnified, bool isModeAButton, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
+	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isVButton, bool isModeAButton, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
 
 		map<string, string> TagReplacementMap;
 
@@ -135,7 +139,6 @@ protected:
 
 		TagReplacementMap.insert(pair<string, string>("Callsign", callsign));
 
-
 		TagReplacementMap.insert(pair<string, string>("Squawk", RadarTarget.GetPosition().GetSquawk()));
 		// Alt
 		string alt = to_string((int)RoundTo(RadarTarget.GetPosition().GetFlightLevel(), 100) / 100);
@@ -145,7 +148,12 @@ protected:
 
 		TagReplacementMap.insert(pair<string, string>("Altitude", alt));
 		
-		TagReplacementMap.insert(pair<string, string>("ReportedGS", string("N") + padWithZeros(4, RadarTarget.GetPosition().GetReportedGS())));
+		string gs = "";
+		if (IsMagnified || isVButton) {
+			gs = string("G") + to_string(RadarTarget.GetPosition().GetReportedGS());
+		}
+
+		TagReplacementMap.insert(pair<string, string>("ReportedGS", gs));
 
 		TagReplacementMap.insert(pair<string, string>("R", " "));
 		TagReplacementMap.insert(pair<string, string>("V", " "));
@@ -207,7 +215,7 @@ protected:
 				warning += "CODE";
 			}
 
-			if (isMagnified && warning.length() != 0)
+			if (IsMagnified && warning.length() != 0)
 				warning = " " + warning;
 
 			TagReplacementMap.insert(pair<string, string>("Warning", warning.c_str()));
@@ -230,7 +238,7 @@ protected:
 				CFL = RFL;
 
 			// If not detailed and reached alt, then nothing to show
-			if (!isMagnified && abs(RadarTarget.GetPosition().GetFlightLevel()- FlightPlan.GetClearedAltitude()) < 100)
+			if (!IsMagnified && abs(RadarTarget.GetPosition().GetFlightLevel()- FlightPlan.GetClearedAltitude()) < 100)
 				CFL = "";
 
 			if (FlightPlan.GetControllerAssignedData().GetClearedAltitude() == 1)
@@ -241,8 +249,32 @@ protected:
 
 			TagReplacementMap.insert(pair<string, string>("CFL", CFL));
 			
+			string assignedSpeed = "";
+
+			// If there is a speed
+			if (FlightPlan.GetControllerAssignedData().GetAssignedSpeed() != 0 ||
+				FlightPlan.GetControllerAssignedData().GetAssignedMach() != 0) {
+				if (!IsMagnified) {
+					assignedSpeed = "S";
+				}
+				else {
+					if (FlightPlan.GetControllerAssignedData().GetAssignedMach() != 0) {
+						assignedSpeed = "M" + to_string(FlightPlan.GetControllerAssignedData().GetAssignedMach() / 100.0).substr(0, 4);
+					}
+					else {
+						assignedSpeed = "S" + to_string(FlightPlan.GetControllerAssignedData().GetAssignedSpeed());
+					}
+				}
+			}
+			else if (IsMagnified) {
+				assignedSpeed = "   ";
+			}
+			
+
+			TagReplacementMap.insert(pair<string, string>("AssignedSpeed", assignedSpeed));
+
 			// Sector
-			string SectorId = "--";
+			string SectorId = "   ";
 			if (FlightPlan.GetTrackingControllerIsMe()) {
 				string controllerCallsign = FlightPlan.GetCoordinatedNextController();
 				if (controllerCallsign.length()  > 0) {
@@ -259,7 +291,7 @@ protected:
 			TagReplacementMap.insert(pair<string, string>("Sector", SectorId));
 
 			string Horizontal = "  ";
-			if (isMagnified) {
+			if (IsMagnified) {
 				if (FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0) {
 					Horizontal = "H" + padWithZeros(3, FlightPlan.GetControllerAssignedData().GetAssignedHeading());
 				}
@@ -277,7 +309,7 @@ protected:
 			TagReplacementMap.insert(pair<string, string>("HDG", Horizontal));
 
 			string XFL = "";
-			if (isMagnified)
+			if (IsMagnified)
 				XFL = "  ";
 
 			// if assumed, then COPX alt is shown, else COPN alt
@@ -304,13 +336,13 @@ protected:
 					
 			}
 
-			if (!isMagnified && XFL.length() != 0 && XFL == CFL)
+			if (!IsMagnified && XFL.length() != 0 && XFL == CFL)
 				XFL = "";
 
 			TagReplacementMap.insert(pair<string, string>("XFL", XFL));
 			
 			string COP = "";
-			if (isMagnified)
+			if (IsMagnified)
 				COP = "COPX";
 
 			// if assumed, then COPX  is shown, else COPN
@@ -333,7 +365,7 @@ protected:
 				}
 			}
 
-			if (!isMagnified && COP.length() != 0 && COP == string(FlightPlan.GetControllerAssignedData().GetDirectToPointName()))
+			if (!IsMagnified && COP.length() != 0 && COP == string(FlightPlan.GetControllerAssignedData().GetDirectToPointName()))
 				COP = "";
 
 			TagReplacementMap.insert(pair<string, string>("COP", COP));

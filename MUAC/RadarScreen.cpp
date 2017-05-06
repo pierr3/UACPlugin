@@ -853,6 +853,13 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		if (ObjectType == SCREEN_TAG_WARNING)
 			FunctionId = TAG_ITEM_FUNCTION_SQUAWK_POPUP;
 
+		if (ObjectType == SCREEN_TAG_ASPEED) {
+			if (Button == BUTTON_LEFT)
+				FunctionId = TAG_ITEM_FUNCTION_ASSIGNED_SPEED_POPUP;
+			if (Button == BUTTON_RIGHT)
+				FunctionId = TAG_ITEM_FUNCTION_ASSIGNED_MACH_POPUP;
+		}
+
 		if (FunctionId != TAG_ITEM_FUNCTION_NO) {
 			StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
 				FunctionId, Pt, Area);

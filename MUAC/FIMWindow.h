@@ -104,24 +104,23 @@ public:
 
 		// Close button, first one for size, second one for render
 		dc->SetTextAlign(TA_LEFT | TA_TOP);
-		MenuBar::DrawMenuBarButton(dc, { TopBar.right - dc->GetTextExtent("X").cx*2 - 3, TopLeftPosition.y }, "X", mousePt, false);
+		int LeftButtonOffset = TopBar.right - dc->GetTextExtent("X").cx * 2 - 3;
+		CRect ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "X", mousePt, false);
+		LeftButtonOffset -= ButtonRect.Size().cx*3 + 1;
+		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "CPDLC", mousePt, false);
+		LeftButtonOffset -= ButtonRect.Size().cx + 1;
+		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "COORD", mousePt, false);
 		dc->SetTextAlign(TA_LEFT | TA_BASELINE);
 
 		dc->SetTextColor(Colours::AircraftBlue.ToCOLORREF());
 
 		// Second line
 		CRect SecondLine(TopBar.left, TopBar.bottom, TopBar.left + WindowSize.cx, TopBar.bottom + LineHeight - 3);
-		
-		string SecondLineString = "";
+
+		string SecondLineString = "¦";
 
 		if (flightPlan.IsValid()) {
-			if (strlen(flightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
-				SecondLineString += string(flightPlan.GetControllerAssignedData().GetScratchPadString()).substr(0, 7) + " ¦";
-			}
-			else {
-				SecondLineString += "        ¦";
-			}
-
+			
 			SecondLineString += string(flightPlan.GetFlightPlanData().GetAircraftFPType()).substr(0, 5) + " ";
 			SecondLineString += "/" + string(1, flightPlan.GetFlightPlanData().GetAircraftWtc()) + " ";
 
@@ -157,19 +156,37 @@ public:
 				SecondLineString += point + time + padWithZeros(3, flightPlan.GetEntryCoordinationAltitude() / 100);
 			}
 
-			SecondLineString += " ¦";
+			SecondLineString += "¦";
 
 			if (flightPlan.GetTrackingControllerIsMe()) {
 				if (strlen(flightPlan.GetCoordinatedNextController()) != 0 && plugin->ControllerSelect(flightPlan.GetCoordinatedNextController()).IsValid())
 					SecondLineString += to_string(plugin->ControllerSelect(flightPlan.GetCoordinatedNextController()).GetPrimaryFrequency()).substr(0, 7);
+				else
+					SecondLineString += "---.---";
 			}
 			else {
 				if (strlen(flightPlan.GetTrackingControllerCallsign()) != 0 && plugin->ControllerSelect(flightPlan.GetTrackingControllerCallsign()).IsValid())
 					SecondLineString += to_string(plugin->ControllerSelect(flightPlan.GetTrackingControllerCallsign()).GetPrimaryFrequency()).substr(0, 7);
+				else
+					SecondLineString += "---.---";
 			}
 		}
 
-		dc->TextOutA(SecondLine.left + 3, SecondLine.bottom - PaddingSides, SecondLineString.c_str());
+		dc->SetTextAlign(TA_RIGHT | TA_BASELINE);
+		CSize SecondLineMeasure = dc->GetTextExtent(SecondLineString.c_str());
+		dc->TextOutA(SecondLine.right - 3, SecondLine.bottom - PaddingSides, SecondLineString.c_str());
+
+		// Scratchpad
+		CRect ScratchPadRect = { SecondLine.left + 3, SecondLine.top- 1,
+			(SecondLine.right - 3) - SecondLineMeasure.cx, Window.bottom - 3 };
+
+		string scratchPadString = "";
+		if (strlen(flightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
+			scratchPadString += string(flightPlan.GetControllerAssignedData().GetScratchPadString());
+		}
+
+		dc->SetTextAlign(TA_LEFT | TA_TOP);
+		dc->DrawText(scratchPadString.c_str(), ScratchPadRect, DT_WORDBREAK);
 
 		// Third line
 		CRect ThirdLine(SecondLine.left, SecondLine.bottom, SecondLine.left + WindowSize.cx, SecondLine.bottom + LineHeight);
@@ -177,26 +194,70 @@ public:
 		string ThirdLineText = "";
 
 		if (radarTarget.IsValid()) {
-			ThirdLineText = "H" + padWithZeros(3, (int)fmod(radarTarget.GetPosition().GetReportedHeading(), 360)) + " ";
+
+			if (flightPlan.IsValid()) {
+				ThirdLineText += flightPlan.GetFlightPlanData().GetStarName();
+				ThirdLineText += " " + string(flightPlan.GetFlightPlanData().GetArrivalRwy()) + "¦";
+			}
+
+			CRadarTargetPositionData pos = radarTarget.GetPosition();
+			CRadarTargetPositionData oldpos = radarTarget.GetPreviousPosition(pos);
+			float vz = 0.0f;
+			int deltaalt = 0, deltaT = 0;
+			if (pos.IsValid() && oldpos.IsValid()) {
+				deltaalt = pos.GetFlightLevel() - oldpos.GetFlightLevel();
+				deltaT = oldpos.GetReceivedTime() - pos.GetReceivedTime();
+
+				if (deltaT > 0) {
+					vz = abs(deltaalt) * (60.0f / deltaT);
+				}
+			}
+
+			int Tendency = 0;
+			if (abs(vz) >= 100 && abs(deltaalt) >= 20) {
+				Tendency = 1;
+
+				if (deltaalt < 0)
+					Tendency = -1;
+			}
+
+			ThirdLineText += "H" + padWithZeros(3, (int)fmod(radarTarget.GetPosition().GetReportedHeading(), 360)) + " ";
 			
 			if (flightPlan.IsValid()) {
 				ThirdLineText += "IAS" + 
-					to_string(flightPlan.GetFlightPlanData().PerformanceGetIas(radarTarget.GetPosition().GetPressureAltitude(), radarTarget.GetVerticalSpeed()));
+					to_string(flightPlan.GetFlightPlanData().PerformanceGetIas(radarTarget.GetPosition().GetPressureAltitude(), Tendency));
 
-				double mach = flightPlan.GetFlightPlanData().PerformanceGetMach(radarTarget.GetPosition().GetPressureAltitude(), radarTarget.GetVerticalSpeed()) / 100.0;
+				double mach = flightPlan.GetFlightPlanData().PerformanceGetMach(radarTarget.GetPosition().GetPressureAltitude(), Tendency) / 100.0;
 
 				ThirdLineText += " M" + 
 					to_string(mach).substr(0, 4);
 			}
 			ThirdLineText += "¦GS" + padWithZeros(4, radarTarget.GetPosition().GetReportedGS()) + " ";
 
-			if (radarTarget.GetVerticalSpeed() > 100)
-				ThirdLineText += "^";
-			else if (radarTarget.GetVerticalSpeed() < -100)
-				ThirdLineText += "|";
-			else
-				ThirdLineText += "-";
-			ThirdLineText += padWithZeros(4, abs(radarTarget.GetVerticalSpeed())).substr(0, 2);
+			string VerticalRate = "00";
+			
+			if (deltaT > 0) {
+				float vz = abs(deltaalt) * (60.0f / deltaT);
+
+				// If the rate is too much
+				if ((int)abs(vz) >= 9999) {
+					VerticalRate = "^99";
+					if (deltaalt < 0)
+						VerticalRate = "|99";
+				}
+				else if (abs(vz) >= 100 && abs(deltaalt) >= 20) {
+					string rate = padWithZeros(2, (int)abs(vz / 100));
+					VerticalRate = "^" + rate;
+
+					if (deltaalt < 0)
+						VerticalRate = "|" + rate;
+				}
+				else {
+					VerticalRate = "-00";
+				}
+			}
+
+			ThirdLineText += VerticalRate;
 		}
 
 		dc->SetTextAlign(TA_RIGHT | TA_BASELINE);
