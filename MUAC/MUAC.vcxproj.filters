@@ -66,6 +66,12 @@
     <ClInclude Include="MTCD.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FIMWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FontManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

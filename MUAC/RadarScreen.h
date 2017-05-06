@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "Colours.h"
 #include "Tag.h"
+#include "FIMWindow.h"
 #include "TagRenderer.h"
 #include "Constants.h"
 #include "AcSymbols.h"
@@ -50,6 +51,7 @@ private:
 	POINT MousePoint = { 0, 0 };
 	CSTCA * StcaInstance;
 	CMTCD * MtcdInstance;
+	CFIMWindow* FIMWindow;
 	string DetailedTag = "";
 	clock_t OneSecondTimer;
 	clock_t HalfSecondTimer;

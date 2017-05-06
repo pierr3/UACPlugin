@@ -11,9 +11,9 @@ using namespace EuroScopePlugIn;
 class CMTCD
 {
 public:
-	int mtcd_distance = 10;
+	int mtcd_distance = 7;
 	int mtcd_height = 950;
-	int mtcd_disable_level = 14500;
+	int mtcd_disable_level = 10500;
 	int max_extrapolate_time = 30;
 
 	vector<string> Alerts;
@@ -39,8 +39,9 @@ public:
 			if (fp.GetControllerAssignedData().GetAssignedHeading() != 0)
 				continue;
 
-			// TODO: See if we only use it for tracked ac
-			//if (fp.GetTrackingControllerIsMe()
+			// MTCD Only works for assumed flights and incoming flights
+			if (!fp.GetTrackingControllerIsMe() && fp.GetFPState() != FLIGHT_PLAN_STATE_COORDINATED)
+				continue;
 
 			// We scan up to an hour
 			int toExtract = max(max_extrapolate_time, PosPred.GetPointsNumber());
@@ -61,7 +62,10 @@ public:
 					conflicting.IsValid();
 					conflicting = pl->FlightPlanSelectNext(conflicting))
 				{
-					CFlightPlanPositionPredictions PosPredConflicting = fp.GetPositionPredictions();
+					CFlightPlanPositionPredictions PosPredConflicting = conflicting.GetPositionPredictions();
+
+					if (conflicting.GetCallsign() == fp.GetCallsign())
+						continue;
 
 					if (PosPredConflicting.GetPointsNumber() <= 5)
 						continue;

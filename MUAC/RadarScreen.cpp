@@ -8,6 +8,8 @@ RadarScreen::RadarScreen()
 	StcaInstance = new CSTCA();
 	MtcdInstance = new CMTCD();
 
+	FIMWindow = new CFIMWindow({500, 500});
+
 	OneSecondTimer = clock();
 	HalfSecondTimer = clock();
 	LoadAllData();
@@ -63,7 +65,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		double t = (double)(clock() - OneSecondTimer) / ((double)CLOCKS_PER_SEC);
 		if (t >= 1) {
 			StcaInstance->OnRefresh(GetPlugIn());
-			//MtcdInstance->OnRefresh(GetPlugIn());
+			MtcdInstance->OnRefresh(GetPlugIn());
 			OneSecondTimer = clock();
 		}
 
@@ -85,14 +87,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		dc.SelectObject(&SepToolColorPen);
 		dc.SetTextColor(Colours::OrangeTool.ToCOLORREF());
 
-		CFont* pOldFont = dc.GetCurrentFont();
-		LOGFONT logFont;
-		pOldFont->GetLogFont(&logFont);
-		logFont.lfHeight = FONT_SIZE;
-		CFont TagNormalFont;
-		TagNormalFont.CreateFontIndirect(&logFont);
-
-		dc.SelectObject(&TagNormalFont);
+		FontManager::SelectStandardFont(&dc);
 
 		// 
 		// First is active tool
@@ -564,6 +559,10 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		// Menubar
 		MenuBar::DrawMenuBar(&dc, this, { RadarArea.left, RadarArea.top + 1 }, MousePoint, MenuButtons, ButtonsPressed);
 
+		// FIM Window
+		CRect r = FIMWindow->Render(&dc, GetPlugIn(), MousePoint, GetPlugIn()->RadarTargetSelectASEL(), GetPlugIn()->FlightPlanSelectASEL());
+		AddScreenObject(FIM_WINDOW, "", r, true, "");
+
 		// Soft Tag deconfliction
 		for (const auto areas : SoftTagAreas)
 		{
@@ -664,6 +663,10 @@ void RadarScreen::OnMoveScreenObject(int ObjectType, const char * sObjectId, POI
 		POINT AcPosPix = ConvertCoordFromPositionToPixel(GetPlugIn()->RadarTargetSelect(sObjectId).GetPosition().GetPosition());
 		POINT CustomTag = { Area.left - AcPosPix.x, Area.top - AcPosPix.y };
 		TagOffsets[sObjectId] = CustomTag;
+	}
+
+	if (ObjectType == FIM_WINDOW) {
+		FIMWindow->Move(Area, Released);
 	}
 
 	RequestRefresh();

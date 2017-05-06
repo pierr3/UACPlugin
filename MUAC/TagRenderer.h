@@ -3,6 +3,7 @@
 #include <vector>
 #include "Constants.h"
 #include "Colours.h"
+#include "FontManager.h"
 #include "TagItem.h"
 #include "EuroScopePlugIn.h"
 
@@ -18,14 +19,7 @@ public:
 
 		int save = dc->SaveDC();
 		
-		CFont* pOldFont = dc->GetCurrentFont();
-		LOGFONT logFont;
-		pOldFont->GetLogFont(&logFont);
-		logFont.lfHeight = FONT_SIZE;
-		CFont TagNormalFont;
-		TagNormalFont.CreateFontIndirect(&logFont);
-		
-		dc->SelectObject(&TagNormalFont);
+		FontManager::SelectStandardFont(dc);
 
 		int leftOffset = 0;
 		int topOffset = 0;
@@ -57,9 +51,13 @@ public:
 			SecondaryColor = Colours::AircraftGreen.ToCOLORREF();
 		}
 
-		if (tag.TagState == Tag::TagStates::Next || tag.TagState == Tag::TagStates::TransferredToMe || 
+		if (tag.TagState == Tag::TagStates::Next || 
 			tag.TagState == Tag::TagStates::InSequence) {
 			SecondaryColor = Colours::AircraftGreen.ToCOLORREF();
+		}
+
+		if (tag.TagState == Tag::TagStates::TransferredToMe) {
+			SecondaryColor = Colours::AircraftBlue.ToCOLORREF();
 		}
 
 		if (tag.TagState == Tag::TagStates::TransferredFromMe) {
@@ -68,18 +66,8 @@ public:
 
 		dc->SetTextColor(PrimaryColor);
 
-		if (isDetailed) {
-			CFont *pOldFont = dc->GetCurrentFont();
-
-			LOGFONT logFont;
-			pOldFont->GetLogFont(&logFont);
-			logFont.lfHeight += (long)(logFont.lfHeight*0.25);
-
-			CFont newFont;
-			newFont.CreateFontIndirect(&logFont);
-
-			dc->SelectObject(&newFont);
-		}
+		if (isDetailed)
+			FontManager::SelectBoldBigFont(dc);
 
 		for (auto TagLine : Definition) {
 			// For each item

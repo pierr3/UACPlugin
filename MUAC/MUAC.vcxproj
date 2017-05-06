@@ -155,6 +155,7 @@
     <ClInclude Include="AntiOverlap.h" />
     <ClInclude Include="Colours.h" />
     <ClInclude Include="Constants.h" />
+    <ClInclude Include="FontManager.h" />
     <ClInclude Include="Helper.h" />
     <ClInclude Include="MenuBar.h" />
     <ClInclude Include="MTCD.h" />
@@ -167,6 +168,7 @@
     <ClInclude Include="TagItem.h" />
     <ClInclude Include="TagRenderer.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="FIMWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

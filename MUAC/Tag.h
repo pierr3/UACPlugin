@@ -122,7 +122,7 @@ protected:
 		string callsign = RadarTarget.GetCallsign();
 
 		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED)
-			callsign = PREFIX_PURPLE_COLOR+">>" + callsign;
+			callsign = ">>" + callsign;
 
 		if (FlightPlan.IsValid() && FlightPlan.IsTextCommunication())
 			callsign += "/t";
@@ -213,23 +213,31 @@ protected:
 			TagReplacementMap.insert(pair<string, string>("Warning", warning.c_str()));
 
 			// RFL
-			string RFL = to_string((int)FlightPlan.GetControllerAssignedData().GetFinalAltitude() / 100);
+			string RFL = padWithZeros(3, FlightPlan.GetControllerAssignedData().GetFinalAltitude() / 100);
 
 			if (FlightPlan.GetControllerAssignedData().GetFinalAltitude() == 0)
-				RFL = to_string((int)FlightPlan.GetFlightPlanData().GetFinalAltitude() / 100);
+				RFL = padWithZeros(3, FlightPlan.GetFlightPlanData().GetFinalAltitude() / 100);
+
+			RFL = RFL.substr(0, 2);
 
 			TagReplacementMap.insert(pair<string, string>("RFL", RFL));
 
 			// CFL
-			string CFL = to_string((int)FlightPlan.GetClearedAltitude() / 100);
+			string CFL = padWithZeros(3, FlightPlan.GetClearedAltitude() / 100);
+			CFL = CFL.substr(0, 2);
 
 			if (FlightPlan.GetClearedAltitude() == 0)
 				CFL = RFL;
 
 			// If not detailed and reached alt, then nothing to show
-			if (!isMagnified && abs(RadarTarget.GetPosition().GetFlightLevel()- FlightPlan.GetClearedAltitude()) < 100) {
-				CFL = " ";
-			}
+			if (!isMagnified && abs(RadarTarget.GetPosition().GetFlightLevel()- FlightPlan.GetClearedAltitude()) < 100)
+				CFL = "";
+
+			if (FlightPlan.GetControllerAssignedData().GetClearedAltitude() == 1)
+				CFL = "®";
+
+			if (FlightPlan.GetControllerAssignedData().GetClearedAltitude() == 2)
+				CFL = "©";
 
 			TagReplacementMap.insert(pair<string, string>("CFL", CFL));
 			
@@ -250,7 +258,7 @@ protected:
 
 			TagReplacementMap.insert(pair<string, string>("Sector", SectorId));
 
-			string Horizontal = "HDG";
+			string Horizontal = "  ";
 			if (isMagnified) {
 				if (FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0) {
 					Horizontal = "H" + padWithZeros(3, FlightPlan.GetControllerAssignedData().GetAssignedHeading());
@@ -270,12 +278,13 @@ protected:
 
 			string XFL = "";
 			if (isMagnified)
-				XFL = "XFL";
+				XFL = "  ";
 
 			// if assumed, then COPX alt is shown, else COPN alt
 			if (FlightPlan.GetTrackingControllerIsMe()) {
 				if (FlightPlan.GetExitCoordinationAltitude() != 0) {
-					XFL = to_string(FlightPlan.GetExitCoordinationAltitude() / 100);
+					XFL = padWithZeros(3, FlightPlan.GetExitCoordinationAltitude() / 100);
+					XFL = XFL.substr(0, 2);
 
 					if (FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME ||
 						FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
@@ -285,7 +294,8 @@ protected:
 			}
 			else {
 				if (FlightPlan.GetEntryCoordinationAltitude() != 0) {
-					XFL = to_string(FlightPlan.GetEntryCoordinationAltitude() / 100);
+					XFL = padWithZeros(3, FlightPlan.GetEntryCoordinationAltitude() / 100);
+					XFL = XFL.substr(0, 2);
 
 					if (FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME ||
 						FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
