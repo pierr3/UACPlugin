@@ -12,6 +12,7 @@
 #include "STCA.h"
 #include "MTCD.h"
 #include "AntiOverlap.h"
+#include "RouteRenderer.h"
 #include "EuroScopePlugIn.h"
 
 using namespace std;
@@ -53,6 +54,9 @@ private:
 	CMTCD * MtcdInstance;
 	CFIMWindow* FIMWindow;
 	string DetailedTag = "";
+	string mouseOverTag = "";
+	clock_t mouseOverTagTimer;
+	CRect mouseOverArea;
 	clock_t OneSecondTimer;
 	clock_t HalfSecondTimer;
 	bool Blink = false;

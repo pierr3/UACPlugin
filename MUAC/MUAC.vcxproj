@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="AcSymbols.h" />
     <ClInclude Include="AntiOverlap.h" />
+    <ClInclude Include="CallsignLookup.h" />
     <ClInclude Include="Colours.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="FontManager.h" />
@@ -162,6 +163,7 @@
     <ClInclude Include="MUAC.h" />
     <ClInclude Include="RadarScreen.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="RouteRenderer.h" />
     <ClInclude Include="STCA.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Tag.h" />
@@ -171,6 +173,7 @@
     <ClInclude Include="FIMWindow.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CallsignLookup.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

@@ -117,10 +117,11 @@ public:
 		// Second line
 		CRect SecondLine(TopBar.left, TopBar.bottom, TopBar.left + WindowSize.cx, TopBar.bottom + LineHeight - 3);
 
-		string SecondLineString = "¦";
+		string SecondLineString = "";
 
 		if (flightPlan.IsValid()) {
-			
+			SecondLineString += "¦";
+
 			SecondLineString += string(flightPlan.GetFlightPlanData().GetAircraftFPType()).substr(0, 5) + " ";
 			SecondLineString += "/" + string(1, flightPlan.GetFlightPlanData().GetAircraftWtc()) + " ";
 
@@ -135,25 +136,34 @@ public:
 
 			// Cop X/N
 			if (flightPlan.GetTrackingControllerIsMe()) {
-				string point = flightPlan.GetExitCoordinationPointName();
-				if (point.length() == 0)
-					point = "     ";
-				string time = " +" + to_string(flightPlan.GetSectorExitMinutes()) + "' ";
-				if (flightPlan.GetSectorExitMinutes() == -1)
-					time = "    ";
+				string point = string(flightPlan.GetExitCoordinationPointName()) + " ";
+				if (strlen(flightPlan.GetExitCoordinationPointName()) == 0)
+					point = "      ";
 
-				SecondLineString += point + time + padWithZeros(3, flightPlan.GetExitCoordinationAltitude() / 100);
+				string time = "     ";
+				if (flightPlan.GetSectorExitMinutes() != -1)
+					time = getUtcTimePlusMinutes(flightPlan.GetSectorExitMinutes()) + " ";
+
+				string fl = padWithZeros(3, flightPlan.GetExitCoordinationAltitude() / 100);
+				if (flightPlan.GetExitCoordinationAltitude() == 0)
+					fl = "   ";
+
+				SecondLineString += point + time + fl.substr(0, 3);
 			}
 			else {
-				string point = flightPlan.GetEntryCoordinationPointName();
-				if (point.length() == 0)
-					point = "     ";
+				string point = string(flightPlan.GetEntryCoordinationPointName()) + " ";
+				if (strlen(flightPlan.GetEntryCoordinationPointName()) == 0)
+					point = "      ";
 
-				string time = " +" + to_string(flightPlan.GetSectorEntryMinutes()) + "' ";
-				if (flightPlan.GetSectorEntryMinutes() == -1)
-					time = "    ";
+				string time = "     ";
+				if (flightPlan.GetSectorEntryMinutes() != -1)
+					time = getUtcTimePlusMinutes(flightPlan.GetSectorEntryMinutes()) + " ";
 
-				SecondLineString += point + time + padWithZeros(3, flightPlan.GetEntryCoordinationAltitude() / 100);
+				string fl = padWithZeros(3, flightPlan.GetEntryCoordinationAltitude() / 100);
+				if (flightPlan.GetEntryCoordinationAltitude() == 0)
+					fl = "   ";
+
+				SecondLineString += point + time + fl.substr(0, 3);
 			}
 
 			SecondLineString += "¦";

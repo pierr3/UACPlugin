@@ -4,6 +4,10 @@
 #include <sstream>
 #include <iomanip>
 #include "Colours.h"
+#include <time.h>
+#include <ctime>
+#include <ratio>
+#include <chrono>
 #include "EuroScopePlugIn.h"
 
 using namespace std;
@@ -216,3 +220,12 @@ inline static std::vector<std::string> split(const std::string &s, char delim) {
 	split(s, delim, elems);
 	return elems;
 };
+
+static string getUtcTimePlusMinutes(int minutes, string format = "%H%M") {
+	chrono::system_clock::time_point time_now = chrono::system_clock::now();
+	std::time_t now_c = std::chrono::system_clock::to_time_t(time_now + chrono::minutes(minutes));
+	
+	std::stringstream ss;
+	ss << std::put_time(std::gmtime(&now_c), format.c_str());
+	return ss.str();
+}

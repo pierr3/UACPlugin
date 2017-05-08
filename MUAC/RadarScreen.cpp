@@ -222,6 +222,38 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		}
 
 		dc.RestoreDC(saveTool);
+
+		//
+		// Here we check to see if there is a detailed tag
+		//
+		if (mouseOverTag.size() > 0) {
+
+			// We check the mouse is still in the tag
+			if (IsInRect(MousePoint, mouseOverArea)) {
+				clock_t clock_final = clock() - mouseOverTagTimer;
+				double delta_t = (double)clock_final / ((double)CLOCKS_PER_SEC);
+				if (delta_t > 0.2) {
+					DetailedTag = mouseOverTag;
+					mouseOverTag = "";
+
+					CRadarTarget rt = GetPlugIn()->RadarTargetSelect(DetailedTag.c_str());
+
+					if (rt.IsValid() && rt.GetPosition().GetRadarFlags() > RADAR_POSITION_PRIMARY) {
+						GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(DetailedTag.c_str()));
+					}
+					else if (rt.IsValid()) {
+						GetPlugIn()->SetASELAircraft(GetPlugIn()->RadarTargetSelect(DetailedTag.c_str()));
+					}
+				}
+			}
+			else {
+				mouseOverTag = "";
+			}
+
+			// If we still have a mouseOverTag to handle, we refresh ASAP to determine it
+			if (mouseOverTag.size() >0)
+				RequestRefresh();
+		}
 	}
 
 	for (CRadarTarget radarTarget = GetPlugIn()->RadarTargetSelectFirst(); radarTarget.IsValid();
@@ -385,163 +417,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 			// If the route is shown, then we display it
 			if (find(RouteBeingShown.begin(), RouteBeingShown.end(), radarTarget.GetCallsign()) != RouteBeingShown.end()) {
-				int SaveRoute = dc.SaveDC();
-				
-				CFlightPlanExtractedRoute exR = CheatFlightPlan.GetExtractedRoute();
-				int index = exR.GetPointsAssignedIndex();
-				if (index < 0)
-					index = exR.GetPointsCalculatedIndex();
-
-				bool isLastTextOnLeftSide = false;
-
-				for (int i = index; i < exR.GetPointsNumber(); i++)
-				{
-					
-					POINT exRPos = ConvertCoordFromPositionToPixel(exR.GetPointPosition(i));
-
-					if (exR.GetPointDistanceInMinutes(i) == -1) {
-						continue;
-					}
-
-					Color routeColor = Colours::AirwayColors;
-
-					if (exR.GetPointAirwayClassification(i) == AIRWAY_CLASS_DIRECTION_ERROR ||
-						exR.GetPointAirwayClassification(i) == AIRWAY_CLASS_UNCONNECTED) {
-						routeColor = Gdiplus::Color::Red;
-					}
-
-					CPen routePen(PS_SOLID, 1, routeColor.ToCOLORREF());
-					CPen* oldPen = dc.SelectObject(&routePen);
-					dc.SetTextColor(routeColor.ToCOLORREF());
-
-					bool isTextOnLeftSide = false;
-
-					if (i == index)
-					{
-						dc.MoveTo(radarTargetPoint);
-						dc.LineTo(exRPos);
-						if (radarTarget.GetPosition().GetPosition().DistanceTo(exR.GetPointPosition(i)) < 10)
-						{
-							if (!isLastTextOnLeftSide)
-							{
-								isTextOnLeftSide = true;
-								isLastTextOnLeftSide = true;
-							}
-						}
-					}
-					else
-					{
-						dc.MoveTo(ConvertCoordFromPositionToPixel(exR.GetPointPosition(i - 1)));
-						dc.LineTo(exRPos);
-
-						if (exR.GetPointPosition(i).DistanceTo(exR.GetPointPosition(i - 1)) < 10)
-						{
-							if (!isLastTextOnLeftSide)
-							{
-								isTextOnLeftSide = true;
-								isLastTextOnLeftSide = true;
-							}
-						}
-					}
-
-					if (!isTextOnLeftSide)
-						isLastTextOnLeftSide = false;
-
-					// Selecting top or left right
-
-					bool isTextTop = false;
-					if (i == index)
-					{
-						int br = (int)radarTarget.GetPosition().GetPosition().DirectionTo(exR.GetPointPosition(i));
-						if ((br > 70 && br < 110) || (br > 250 && br < 290))
-						{
-							isTextTop = true;
-						}
-					}
-					else
-					{
-						int br = (int)exR.GetPointPosition(i - 1).DirectionTo(exR.GetPointPosition(i));
-						if ((br > 70 && br < 110) || (br > 250 && br < 290))
-						{
-							isTextTop = true;
-						}
-					}
-
-					dc.MoveTo(exRPos.x, exRPos.y - 3);
-					dc.LineTo(exRPos.x - 3, exRPos.y + 3);
-					dc.LineTo(exRPos.x + 3, exRPos.y + 3);
-					dc.LineTo(exRPos.x, exRPos.y - 3);
-					string actions = CheatFlightPlan.GetCallsign();
-					actions += ",";
-					actions += std::to_string(i);
-
-					string pointName = exR.GetPointName(i);
-					if (pointName == string(CheatFlightPlan.GetControllerAssignedData().GetDirectToPointName()))
-					{
-						pointName = "->" + pointName;
-					}
-
-					string temp = "+" + to_string(exR.GetPointDistanceInMinutes(i));
-					temp += "' ";
-
-					// Converting the profile altitude to FL/Altitude
-
-					int fl = exR.GetPointCalculatedProfileAltitude(i);
-					if (fl <= GetPlugIn()->GetTransitionAltitude()) {
-						fl = exR.GetPointCalculatedProfileAltitude(i);
-						temp += padWithZeros(std::to_string(GetPlugIn()->GetTransitionAltitude()).size(), fl);
-					}
-					else
-					{
-						temp += "FL" + padWithZeros(5, fl).substr(0, 3);
-					}
-
-					if (isTextOnLeftSide)
-					{
-						if (isTextTop)
-						{
-							dc.SetTextAlign(TA_LEFT | TA_BASELINE);
-							dc.TextOutA(exRPos.x, exRPos.y - 25, pointName.c_str());
-							dc.TextOutA(exRPos.x, exRPos.y - 10, temp.c_str());
-							dc.MoveTo(exRPos);
-							dc.LineTo({ exRPos.x, exRPos.y - 10 });
-						}
-						else
-						{
-							dc.SetTextAlign(TA_RIGHT | TA_BASELINE);
-							dc.TextOutA(exRPos.x - 15, exRPos.y, pointName.c_str());
-							dc.TextOutA(exRPos.x - 15, exRPos.y + 10, temp.c_str());
-							dc.MoveTo(exRPos);
-							dc.LineTo({ exRPos.x - 15, exRPos.y });
-						}
-
-					}
-					else
-					{
-						if (isTextTop)
-						{
-							dc.SetTextAlign(TA_LEFT | TA_TOP);
-							dc.TextOutA(exRPos.x, exRPos.y + 10, pointName.c_str());
-							dc.TextOutA(exRPos.x, exRPos.y + 25, temp.c_str());
-							dc.MoveTo(exRPos);
-							dc.LineTo({ exRPos.x, exRPos.y + 10 });
-						}
-						else
-						{
-							dc.SetTextAlign(TA_BASELINE | TA_LEFT);
-							dc.TextOutA(exRPos.x + 5, exRPos.y + 10, pointName.c_str());
-							dc.TextOutA(exRPos.x + 5, exRPos.y + 25, temp.c_str());
-							dc.MoveTo(exRPos);
-							dc.LineTo({ exRPos.x + 5, exRPos.y });
-						}
-
-					}
-
-					dc.SelectObject(&oldPen);
-
-				}
-
-				dc.RestoreDC(SaveRoute);
+				RouteRenderer::Render(&dc, this, radarTarget, CorrelatedFlightPlan);
 			}
 		}
 
@@ -663,6 +539,8 @@ void RadarScreen::OnMoveScreenObject(int ObjectType, const char * sObjectId, POI
 		POINT AcPosPix = ConvertCoordFromPositionToPixel(GetPlugIn()->RadarTargetSelect(sObjectId).GetPosition().GetPosition());
 		POINT CustomTag = { Area.left - AcPosPix.x, Area.top - AcPosPix.y };
 		TagOffsets[sObjectId] = CustomTag;
+		if (!Released)
+			DetailedTag = sObjectId;
 	}
 
 	if (ObjectType == FIM_WINDOW) {
@@ -675,8 +553,12 @@ void RadarScreen::OnMoveScreenObject(int ObjectType, const char * sObjectId, POI
 void RadarScreen::OnOverScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area)
 {
 	if (ObjectType == SCREEN_TAG || ObjectType == SCREEN_AC_SYMBOL) {
-		DetailedTag = sObjectId;
-		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+		// We only select the aircraft after waiting for the mouse to be on the tag for a few milliseconds
+		if (mouseOverTag != string(sObjectId) && sObjectId != DetailedTag) {
+			mouseOverTag = sObjectId;
+			mouseOverTagTimer = clock();
+			mouseOverArea = Area;
+		}
 	}
 	
 	MousePoint = Pt;
@@ -736,6 +618,7 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 	}
 
 	if (ObjectType == SCREEN_TAG || ObjectType == SCREEN_AC_SYMBOL || ObjectType >= SCREEN_TAG_CALLSIGN) {
+		DetailedTag = sObjectId;
 		if (AcquiringSepTool != "" && AcquiringSepTool != sObjectId) {
 			SepToolPairs.insert(pair<string, string>(AcquiringSepTool, sObjectId));
 			AcquiringSepTool = "";
@@ -745,6 +628,7 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 	}
 
 	if (ObjectType == SCREEN_AC_SYMBOL) {
+		DetailedTag = sObjectId;
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		POINT AcPosition = ConvertCoordFromPositionToPixel(rt.GetPosition().GetPosition());
 
