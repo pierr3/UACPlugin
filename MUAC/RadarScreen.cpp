@@ -618,6 +618,7 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 	}
 
 	if (ObjectType == SCREEN_TAG || ObjectType == SCREEN_AC_SYMBOL || ObjectType >= SCREEN_TAG_CALLSIGN) {
+		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
 		DetailedTag = sObjectId;
 		if (AcquiringSepTool != "" && AcquiringSepTool != sObjectId) {
 			SepToolPairs.insert(pair<string, string>(AcquiringSepTool, sObjectId));
@@ -667,7 +668,6 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 
 	// Tag clicks
 	if (ObjectType >= SCREEN_TAG_CALLSIGN) {
-		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
 		
 		CFlightPlan fp = GetPlugIn()->FlightPlanSelectASEL();
 
@@ -692,10 +692,13 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 			}
 		}
 			
-
-		if (ObjectType == SCREEN_TAG_CFL)
-			FunctionId = TAG_ITEM_FUNCTION_TEMP_ALTITUDE_POPUP;
-
+		if (ObjectType == SCREEN_TAG_CFL) {
+			if (Button == BUTTON_LEFT)
+				FunctionId = TAG_ITEM_FUNCTION_TEMP_ALTITUDE_POPUP;
+			if (Button == BUTTON_RIGHT)
+				FunctionId = TAG_ITEM_FUNCTION_OPEN_FP_DIALOG;
+		}
+			
 		if (ObjectType == SCREEN_TAG_HORIZ) {
 			if (Button == BUTTON_LEFT)
 				FunctionId = TAG_ITEM_FUNCTION_NEXT_ROUTE_POINTS_POPUP;

@@ -190,12 +190,19 @@ protected:
 		if (FlightPlan.IsValid()) {
 			
 			string warning = "";
+
 			if (FlightPlan.GetCLAMFlag())
 				warning = "CLAM";
 			if (FlightPlan.GetRAMFlag())
 				warning = "RAM";
 			if (FlightPlan.GetRAMFlag() && FlightPlan.GetCLAMFlag())
 				warning = "C+R";
+
+			if (strlen(FlightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
+				if (warning.length() != 0)
+					warning += " ";
+				warning += "I";
+			}
 
 			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
 			const char * ssr = RadarTarget.GetPosition().GetSquawk();

@@ -61,7 +61,7 @@ public:
 
 		CPen BlackPen(PS_SOLID, 1, RGB(0, 0, 0));
 		CPen GreyPen(PS_SOLID, 1, Colours::AircraftLightGrey.ToCOLORREF());
-		if (IsInRect(mousePt, Window))
+		if (IsInRect(mousePt, Window) || !Released)
 			dc->SelectObject(&GreyPen);
 		else
 			dc->SelectObject(&BlackPen);
