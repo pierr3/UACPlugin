@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "MUAC.h"
 #include "Constants.h"
 #include "Colours.h"
 #include "MenuBar.h"
@@ -21,7 +22,7 @@ private:
 	bool Display = true;
 	bool Released = true;
 
-	string lengthString = "SCRATCHPAD B738 /m N0000 EHAM LEMD ECL390 MEDIL 1054 390  136.330";
+	string lengthString = "SCRATCHPADSTR  B738 /m N0000 EHAM LEMD ECL390 MEDIL 1054 390  136.330";
 
 	int PaddingSides = 3;
 	int PaddingTops = 5;
@@ -95,12 +96,18 @@ public:
 
 			dc->TextOutA(TopLeftPosition.x + LeftTextOffset, TopBar.bottom - PaddingSides, flightPlan.GetCallsign());
 
-			LeftTextOffset += dc->GetTextExtent(string(flightPlan.GetCallsign() + string("GAPGAP")).c_str()).cx;
+			LeftTextOffset += dc->GetTextExtent("AFRXXXXGAPGAP").cx;
 
 			dc->RestoreDC(dcSaveBold);
-		}
 
-		// TODO: Add airline
+			if (CCallsignLookup::Available) {
+				string callsign_code = flightPlan.GetCallsign();
+				callsign_code = callsign_code.substr(0, 3);
+
+				dc->TextOutA(TopLeftPosition.x + LeftTextOffset, TopBar.bottom - PaddingSides, 
+					CCallsignLookup::Lookup->getCallsign(callsign_code).c_str());
+			}
+		}
 
 		// Close button, first one for size, second one for render
 		dc->SetTextAlign(TA_LEFT | TA_TOP);

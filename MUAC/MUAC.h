@@ -3,6 +3,7 @@
 #include <time.h>
 #include "EuroScopePlugIn.h"
 #include "Constants.h"
+#include "CallsignLookup.h"
 #include "RadarScreen.h"
 
 using namespace std;

@@ -11,11 +11,12 @@ class CCallsignLookup
 private:
 	std::map<string, string> callsigns;
 
-
 public:
-
 	CCallsignLookup(string fileName);
 	string getCallsign(string airlineCode);
+
+	static bool Available;
+	static CCallsignLookup* Lookup;
 
 	~CCallsignLookup();
 };

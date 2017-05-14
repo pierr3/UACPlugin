@@ -1,8 +1,14 @@
 #include "stdafx.h"
 #include "RadarScreen.h"
 
+ULONG_PTR m_gdiplusToken;
+
 RadarScreen::RadarScreen()
 {
+	// Initialize GDI+
+	GdiplusStartupInput gdiplusStartupInput;
+	GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, nullptr);
+
 	// Initialize the Menu Bar
 	MenuButtons = MenuBar::MakeButtonData();
 	StcaInstance = new CSTCA();
@@ -17,6 +23,7 @@ RadarScreen::RadarScreen()
 
 RadarScreen::~RadarScreen()
 {
+	GdiplusShutdown(m_gdiplusToken);
 }
 
 void RadarScreen::LoadAllData()
@@ -54,6 +61,11 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 	// Setup gdi renderer
 	CDC dc;
 	dc.Attach(hDC);
+
+	// Creating the gdi+ graphics
+	Graphics graphics(hDC);
+	graphics.SetPageUnit(UnitPixel);
+	graphics.SetSmoothingMode(SmoothingModeAntiAlias);
 
 	CRect RadarArea(GetRadarArea());
 	RadarArea.top = RadarArea.top - 1;
@@ -96,22 +108,25 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		if (AcquiringSepTool != "") {
 			CPosition ActivePosition = GetPlugIn()->RadarTargetSelect(AcquiringSepTool.c_str()).GetPosition().GetPosition();
 			
-			
 			if (GetPlugIn()->RadarTargetSelect(AcquiringSepTool.c_str()).GetPosition().IsValid()) {
 				POINT ActivePositionPoint = ConvertCoordFromPositionToPixel(ActivePosition);
 
 				dc.MoveTo(ActivePositionPoint);
 				dc.LineTo(MousePoint);
+
+				string headingText = padWithZeros(3, (int)ActivePosition.DirectionTo(ConvertCoordFromPixelToPosition(MousePoint)));
+				
 				string distanceText = to_string(ActivePosition.DistanceTo(ConvertCoordFromPixelToPosition(MousePoint)));
 				size_t decimal_pos = distanceText.find(".");
 				distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
 
-				string headingText = to_string(ActivePosition.DirectionTo(ConvertCoordFromPixelToPosition(MousePoint)));
-				decimal_pos = headingText.find(".");
-				distanceText += " " + headingText.substr(0, decimal_pos + 2) + "°";
+				POINT TextPositon = { MousePoint.x + 15, MousePoint.y };
+				dc.TextOutA(TextPositon.x, TextPositon.y, string(headingText + "/" + distanceText).c_str());
 
-				POINT TextPositon = { MousePoint.x + 10, MousePoint.y };
-				dc.TextOutA(TextPositon.x, TextPositon.y, distanceText.c_str());
+				CRect ellipsePointer = { MousePoint.x - 4, MousePoint.y - 4, MousePoint.x + 4, MousePoint.y + 4 };
+				graphics.DrawEllipse(&Pen(Color::White), RectToGdiplus(ellipsePointer));
+				ellipsePointer.InflateRect(4, 4);
+				graphics.DrawEllipse(&Pen(Color::White), RectToGdiplus(ellipsePointer));
 			}
 
 			RequestRefresh();
@@ -136,13 +151,13 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 				// First the distance tool
 
+				string headingText = padWithZeros(3, (int)FirstTargetPos.DirectionTo(SecondTargetPos));
+
 				string distanceText = to_string(FirstTargetPos.DistanceTo(SecondTargetPos));
 				size_t decimal_pos = distanceText.find(".");
 				distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
 
-				string headingText = to_string(FirstTargetPos.DirectionTo(SecondTargetPos));
-				decimal_pos = headingText.find(".");
-				distanceText += " " + headingText.substr(0, decimal_pos + 2) + "°";
+				distanceText = headingText + "/" + distanceText;
 
 				POINT MidPointDistance = { (int)((FirstPos.x + SecondPos.x) / 2), (int)((FirstPos.y + SecondPos.y) / 2) };
 
@@ -169,7 +184,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				CPosition Prediction;
 				CPosition PredictionOther;
 				double lastDistance = FirstTargetPos.DistanceTo(SecondTargetPos);
-				for (int i = 10; i < 60 * 45; i += 10) {
+				for (int i = 30; i <= 60 * 30; i += 10) {
 					Prediction = Extrapolate(FirstTargetPos, FirstTarget.GetTrackHeading(),
 						FirstTarget.GetPosition().GetReportedGS()*0.514444*i);
 					PredictionOther = Extrapolate(SecondTargetPos, SecondTarget.GetTrackHeading(),
@@ -194,7 +209,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 						decimal_pos = distanceText.find(".");
 						distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
 
-						distanceText += " " + to_string((int)i / 60) + "'" + to_string((int)i % 60) + '"';
+						distanceText = to_string((int)i / 60) + "'" + to_string((int)i % 60) + '"' + "/" + distanceText;
 
 						dc.TextOutA(TextPositon.x, TextPositon.y + Measure.cy, distanceText.c_str());
 						AreaRemoveTool.right = max(AreaRemoveTool.right, TextPositon.x + Measure.cx);
@@ -270,6 +285,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		bool IsPrimary = !radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI();
 
 		bool HideTarget = false;
+
 		/// 
 		/// Filtering
 		///
@@ -514,8 +530,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				dc.TextOutA(testGridkv.second.left, testGridkv.second.top, str.c_str());
 			}
 			
-
-			dc.RestoreDC(saveTest); */
+			dc.RestoreDC(saveTest);*/
 			// END TEST
 
 			POINT newOffset = AntiOverlap::Execute(this, TagAreas, TagOffsets, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);

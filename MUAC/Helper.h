@@ -1,9 +1,11 @@
 #pragma once
 #include "stdafx.h"
 #include <string>
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include "Colours.h"
+#include "CallsignLookup.h"
 #include <time.h>
 #include <ctime>
 #include <ratio>
@@ -57,6 +59,17 @@ static void DrawHourGlassWithLeader(CDC * dc, POINT Position, POINT PositionOfLe
 	dc->LineTo(PositionOfLeader);
 
 	dc->RestoreDC(save);
+}
+
+inline static Gdiplus::Rect RectToGdiplus(CRect &rect)
+{
+	return Gdiplus::Rect(rect.left, rect.top, rect.Width(), rect.Height());
+};
+
+static bool file_exist(string fileName)
+{
+	ifstream infile(fileName);
+	return infile.good();
 }
 
 // Liang-Barsky function by Daniel White @ http://www.skytopia.com/project/articles/compsci/clipping.html
