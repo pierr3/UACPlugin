@@ -37,7 +37,7 @@ public:
 		TopLeftPosition = { Area.left, Area.top };
 	}
 
-	CRect Render(CDC* dc, CPlugIn* plugin, POINT mousePt, CRadarTarget radarTarget, CFlightPlan flightPlan) {
+	CRect Render(CDC* dc, CRadarScreen* instance, POINT mousePt, CRadarTarget radarTarget, CFlightPlan flightPlan) {
 		int saveDc = dc->SaveDC();
 
 		FontManager::SelectStandardFont(dc);
@@ -176,14 +176,14 @@ public:
 			SecondLineString += "¦";
 
 			if (flightPlan.GetTrackingControllerIsMe()) {
-				if (strlen(flightPlan.GetCoordinatedNextController()) != 0 && plugin->ControllerSelect(flightPlan.GetCoordinatedNextController()).IsValid())
-					SecondLineString += to_string(plugin->ControllerSelect(flightPlan.GetCoordinatedNextController()).GetPrimaryFrequency()).substr(0, 7);
+				if (strlen(flightPlan.GetCoordinatedNextController()) != 0 && instance->GetPlugIn()->ControllerSelect(flightPlan.GetCoordinatedNextController()).IsValid())
+					SecondLineString += to_string(instance->GetPlugIn()->ControllerSelect(flightPlan.GetCoordinatedNextController()).GetPrimaryFrequency()).substr(0, 7);
 				else
 					SecondLineString += "---.---";
 			}
 			else {
-				if (strlen(flightPlan.GetTrackingControllerCallsign()) != 0 && plugin->ControllerSelect(flightPlan.GetTrackingControllerCallsign()).IsValid())
-					SecondLineString += to_string(plugin->ControllerSelect(flightPlan.GetTrackingControllerCallsign()).GetPrimaryFrequency()).substr(0, 7);
+				if (strlen(flightPlan.GetTrackingControllerCallsign()) != 0 && instance->GetPlugIn()->ControllerSelect(flightPlan.GetTrackingControllerCallsign()).IsValid())
+					SecondLineString += to_string(instance->GetPlugIn()->ControllerSelect(flightPlan.GetTrackingControllerCallsign()).GetPrimaryFrequency()).substr(0, 7);
 				else
 					SecondLineString += "---.---";
 			}
@@ -193,17 +193,21 @@ public:
 		CSize SecondLineMeasure = dc->GetTextExtent(SecondLineString.c_str());
 		dc->TextOutA(SecondLine.right - 3, SecondLine.bottom - PaddingSides, SecondLineString.c_str());
 
-		// Scratchpad
-		CRect ScratchPadRect = { SecondLine.left + 3, SecondLine.top- 1,
-			(SecondLine.right - 3) - SecondLineMeasure.cx, Window.bottom - 3 };
+		if (flightPlan.IsValid()) {
+			// Scratchpad
+			CRect ScratchPadRect = { SecondLine.left + 3, SecondLine.top - 1,
+				(SecondLine.right - 3) - SecondLineMeasure.cx, Window.bottom - 3 };
 
-		string scratchPadString = "";
-		if (strlen(flightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
-			scratchPadString += string(flightPlan.GetControllerAssignedData().GetScratchPadString());
+			string scratchPadString = "";
+			if (strlen(flightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
+				scratchPadString += string(flightPlan.GetControllerAssignedData().GetScratchPadString());
+			}
+
+			dc->SetTextAlign(TA_LEFT | TA_TOP);
+			dc->DrawText(scratchPadString.c_str(), ScratchPadRect, DT_WORDBREAK);
+
+			instance->AddScreenObject(FIM_SCRATCHPAD, flightPlan.GetCallsign(), ScratchPadRect, false, "");
 		}
-
-		dc->SetTextAlign(TA_LEFT | TA_TOP);
-		dc->DrawText(scratchPadString.c_str(), ScratchPadRect, DT_WORDBREAK);
 
 		// Third line
 		CRect ThirdLine(SecondLine.left, SecondLine.bottom, SecondLine.left + WindowSize.cx, SecondLine.bottom + LineHeight);
@@ -213,8 +217,17 @@ public:
 		if (radarTarget.IsValid()) {
 
 			if (flightPlan.IsValid()) {
-				ThirdLineText += flightPlan.GetFlightPlanData().GetStarName();
-				ThirdLineText += " " + string(flightPlan.GetFlightPlanData().GetArrivalRwy()) + "¦";
+				string Star = flightPlan.GetFlightPlanData().GetStarName();
+				string Rwy = flightPlan.GetFlightPlanData().GetArrivalRwy();
+
+				if (Star.length() == 0)
+					Star = "       ";
+
+				if (Rwy.length() == 0)
+					Rwy = "   ";
+
+				ThirdLineText += Star;
+				ThirdLineText += " " + Rwy + "¦";
 			}
 
 			CRadarTargetPositionData pos = radarTarget.GetPosition();
@@ -270,7 +283,7 @@ public:
 						VerticalRate = "|" + rate;
 				}
 				else {
-					VerticalRate = "-00";
+					VerticalRate = " 00";
 				}
 			}
 
@@ -279,6 +292,47 @@ public:
 
 		dc->SetTextAlign(TA_RIGHT | TA_BASELINE);
 		dc->TextOutA(ThirdLine.right - 3, ThirdLine.bottom - PaddingSides, ThirdLineText.c_str());
+
+		// Add clickable zone
+		if (flightPlan.IsValid()) {
+			CSize LeftStartPointSize = dc->GetTextExtent(ThirdLineText.c_str());
+			POINT LeftStartPoint = { ThirdLine.right - 3 - LeftStartPointSize.cx, ThirdLine.bottom - PaddingSides };
+
+			string Star = flightPlan.GetFlightPlanData().GetStarName();
+			string Rwy = flightPlan.GetFlightPlanData().GetArrivalRwy();
+
+			if (Star.length() == 0)
+				Star = "       ";
+
+			if (Rwy.length() == 0)
+				Rwy = "   ";
+
+			CSize StarSize = dc->GetTextExtent(Star.c_str());
+			CSize RwySize = dc->GetTextExtent(Rwy.c_str());
+			CSize BlankSize = dc->GetTextExtent(" ");
+
+			CRect StarArea = { LeftStartPoint.x, (LeftStartPoint.y + 2) - StarSize.cy, LeftStartPoint.x + StarSize.cx, LeftStartPoint.y + 4 };
+			CRect RwyArea = { StarArea.left + BlankSize.cx + StarSize.cx, StarArea.top,
+				StarArea.left + BlankSize.cx + RwySize.cx + StarSize.cx, StarArea.bottom };
+
+			instance->AddScreenObject(FIM_STAR, flightPlan.GetCallsign(), StarArea, false, "");
+			instance->AddScreenObject(FIM_RWY, flightPlan.GetCallsign(), RwyArea, false, "");
+
+			CPen YellowPen(PS_SOLID, 1, Colours::YellowHighlight.ToCOLORREF());
+
+			if (IsInRect(mousePt, StarArea)) {
+				dc->SelectStockObject(NULL_BRUSH);
+				dc->SelectObject(&YellowPen);
+				dc->Rectangle(StarArea);
+			}
+
+			if (IsInRect(mousePt, RwyArea)) {
+				dc->SelectStockObject(NULL_BRUSH);
+				dc->SelectObject(&YellowPen);
+				dc->Rectangle(RwyArea);
+			}
+		}
+
 
 		dc->RestoreDC(saveDc);
 

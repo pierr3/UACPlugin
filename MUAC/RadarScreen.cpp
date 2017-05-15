@@ -452,7 +452,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		MenuBar::DrawMenuBar(&dc, this, { RadarArea.left, RadarArea.top + 1 }, MousePoint, MenuButtons, ButtonsPressed);
 
 		// FIM Window
-		CRect r = FIMWindow->Render(&dc, GetPlugIn(), MousePoint, GetPlugIn()->RadarTargetSelectASEL(), GetPlugIn()->FlightPlanSelectASEL());
+		CRect r = FIMWindow->Render(&dc, this, MousePoint, GetPlugIn()->RadarTargetSelectASEL(), GetPlugIn()->FlightPlanSelectASEL());
 		AddScreenObject(FIM_WINDOW, "", r, true, "");
 
 		// Soft Tag deconfliction
@@ -679,6 +679,21 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 				break;
 			}
 		}
+	}
+
+	if (ObjectType == FIM_STAR) {
+		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
+			TAG_ITEM_FUNCTION_ASSIGNED_STAR, Pt, Area);
+	}
+
+	if (ObjectType == FIM_RWY) {
+		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
+			TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY, Pt, Area);
+	}
+
+	if (ObjectType == FIM_SCRATCHPAD) {
+		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
+			TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
 	}
 
 	// Tag clicks

@@ -56,6 +56,10 @@ const int BUTTON_DOTS = 419;
 
 const int FIM_WINDOW = 501;
 
+const int FIM_STAR = 502;
+const int FIM_RWY = 503;
+const int FIM_SCRATCHPAD = 504;
+
 // Clickable tag items
 
 const int SCREEN_TAG_CALLSIGN = 701;
