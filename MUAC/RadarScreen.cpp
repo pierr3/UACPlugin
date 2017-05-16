@@ -368,7 +368,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 				CRect r = AcSymbols::DrawSquareAndTrail(&dc, AcState, this, radarTarget, ButtonsPressed[BUTTON_DOTS], 
 					IsSoft, StcaInstance->IsSTCA(radarTarget.GetCallsign()), Blink, isDetailed);
-				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, "");
+				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 			}
 			else {
 				AcSymbols::DrawPrimaryTrailAndDiamong(&dc, this, radarTarget, ButtonsPressed[BUTTON_DOTS]);
@@ -422,12 +422,12 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				
 
 			// We add the screen rect
-			AddScreenObject(SCREEN_TAG, radarTarget.GetCallsign(), r, true, "");
+			AddScreenObject(SCREEN_TAG, radarTarget.GetCallsign(), r, true, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 
 			// If detailed we add the screen objects 
 			if (isDetailed) {
 				for (auto kv : DetailedTagData) {
-					AddScreenObject(kv.first, radarTarget.GetCallsign(), kv.second, false, "");
+					AddScreenObject(kv.first, radarTarget.GetCallsign(), kv.second, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 				}
 			}
 

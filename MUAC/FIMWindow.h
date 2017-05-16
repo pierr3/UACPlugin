@@ -132,8 +132,8 @@ public:
 			SecondLineString += string(flightPlan.GetFlightPlanData().GetAircraftFPType()).substr(0, 5) + " ";
 			SecondLineString += "/" + string(1, flightPlan.GetFlightPlanData().GetAircraftWtc()) + " ";
 
-			if (radarTarget.IsValid()) {
-				SecondLineString += "N" + padWithZeros(4, radarTarget.GetGS()) + " ";
+			if (flightPlan.IsValid()) {
+				SecondLineString += "N" + padWithZeros(4, flightPlan.GetFlightPlanData().GetTrueAirspeed()) + " ";
 			}
 
 			SecondLineString += string(flightPlan.GetFlightPlanData().GetOrigin()) + " " + 
@@ -271,9 +271,9 @@ public:
 
 				// If the rate is too much
 				if ((int)abs(vz) >= 9999) {
-					VerticalRate = "^99";
+					VerticalRate = "^++";
 					if (deltaalt < 0)
-						VerticalRate = "|99";
+						VerticalRate = "|++";
 				}
 				else if (abs(vz) >= 100 && abs(deltaalt) >= 20) {
 					string rate = padWithZeros(2, (int)abs(vz / 100));

@@ -126,16 +126,31 @@ protected:
 		string callsign = RadarTarget.GetCallsign();
 
 		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED)
-			callsign = ">>" + callsign;
+			callsign = callsign;
 
 		if (FlightPlan.IsValid() && FlightPlan.IsTextCommunication())
 			callsign += "/t";
 
-		if (FlightPlan.IsValid() && (FlightPlan.GetControllerAssignedData().GetCommunicationType() == 'R'))
+		if (FlightPlan.IsValid() && (FlightPlan.GetControllerAssignedData().GetCommunicationType() == 'R' || FlightPlan.GetControllerAssignedData().GetCommunicationType() == 'r'))
 			callsign += "/r";
 
 		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED)
-			callsign = callsign + ">>";
+			callsign = callsign;
+
+		if (!IsMagnified) {
+			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
+			const char * ssr = RadarTarget.GetPosition().GetSquawk();
+			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+				if (callsign.length() != 0)
+					callsign += " ";
+				callsign += "*";
+			}
+			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
+				if (callsign.length() != 0)
+					callsign += " ";
+				callsign += "*";
+			}
+		}
 
 		TagReplacementMap.insert(pair<string, string>("Callsign", callsign));
 
@@ -156,7 +171,7 @@ protected:
 		TagReplacementMap.insert(pair<string, string>("ReportedGS", gs));
 
 		TagReplacementMap.insert(pair<string, string>("R", " "));
-		TagReplacementMap.insert(pair<string, string>("V", " "));
+		TagReplacementMap.insert(pair<string, string>("V", " ")); // "•"
 
 		string VerticalRate = "00";
 		CRadarTargetPositionData pos = RadarTarget.GetPosition();
@@ -170,9 +185,9 @@ protected:
 
 				// If the rate is too much
 				if ((int)abs(vz) >= 9999) {
-					VerticalRate = "^99";
+					VerticalRate = "^++";
 					if (deltaalt < 0)
-						VerticalRate = "|99";
+						VerticalRate = "|++";
 						
 				}
 				else if (abs(vz) >= 100 && abs(deltaalt) >= 20) {
@@ -192,11 +207,11 @@ protected:
 			string warning = "";
 
 			if (FlightPlan.GetCLAMFlag())
-				warning = "CLAM";
+				warning = "LVL";
 			if (FlightPlan.GetRAMFlag())
 				warning = "RAM";
 			if (FlightPlan.GetRAMFlag() && FlightPlan.GetCLAMFlag())
-				warning = "C+R";
+				warning = "L+R";
 
 			if (strlen(FlightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
 				if (warning.length() != 0)
@@ -204,22 +219,24 @@ protected:
 				warning += "I";
 			}
 
-			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
-			const char * ssr = RadarTarget.GetPosition().GetSquawk();
-			if (isModeAButton) {
-				if (warning.length() != 0)
-					warning += " ";
-				warning += "A" + string(ssr);
-			}
-			else if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
-				if (warning.length() != 0)
-					warning += " ";
-				warning += string(assr);
-			}
-			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
-				if (warning.length() != 0)
-					warning += " ";
-				warning += "CODE";
+			if (IsMagnified) {
+				const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
+				const char * ssr = RadarTarget.GetPosition().GetSquawk();
+				if (isModeAButton) {
+					if (warning.length() != 0)
+						warning += " ";
+					warning += "A" + string(ssr);
+				}
+				else if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+					if (warning.length() != 0)
+						warning += " ";
+					warning += string(assr);
+				}
+				else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
+					if (warning.length() != 0)
+						warning += " ";
+					warning += "CODE";
+				}
 			}
 
 			if (IsMagnified && warning.length() != 0)
