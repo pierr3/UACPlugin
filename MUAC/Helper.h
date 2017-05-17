@@ -234,11 +234,26 @@ inline static std::vector<std::string> split(const std::string &s, char delim) {
 	return elems;
 };
 
+static void DrawTextMultiline(CDC* dc, string Text, POINT TextPosition) {
+	int yOffset = 0;
+	vector<string> data = split(Text, '|');
+
+	for (auto& line : data) {
+		POINT textPt = TextPosition;
+		textPt.y += yOffset;
+
+		dc->TextOutA(textPt.x, textPt.y, line.c_str());
+
+		CSize cs = dc->GetTextExtent(line.c_str());
+		yOffset += cs.cy;
+	}
+}
+
 static string getUtcTimePlusMinutes(int minutes, string format = "%H%M") {
 	chrono::system_clock::time_point time_now = chrono::system_clock::now();
-	std::time_t now_c = std::chrono::system_clock::to_time_t(time_now + chrono::minutes(minutes));
+	time_t now_c = chrono::system_clock::to_time_t(time_now + chrono::minutes(minutes));
 	
-	std::stringstream ss;
-	ss << std::put_time(std::gmtime(&now_c), format.c_str());
+	stringstream ss;
+	ss << put_time(std::gmtime(&now_c), format.c_str());
 	return ss.str();
 }

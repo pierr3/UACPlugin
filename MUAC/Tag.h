@@ -216,7 +216,7 @@ protected:
 			if (strlen(FlightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
 				if (warning.length() != 0)
 					warning += " ";
-				warning += "I";
+				warning += "!";
 			}
 
 			if (IsMagnified) {
@@ -225,7 +225,7 @@ protected:
 				if (isModeAButton) {
 					if (warning.length() != 0)
 						warning += " ";
-					warning += "A" + string(ssr);
+					warning += "N" + string(ssr);
 				}
 				else if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
 					if (warning.length() != 0)
