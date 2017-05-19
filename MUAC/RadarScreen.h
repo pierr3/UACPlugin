@@ -4,6 +4,7 @@
 #include "Colours.h"
 #include "Tag.h"
 #include "FIMWindow.h"
+#include "MTCDWindow.h"
 #include "TagRenderer.h"
 #include "Constants.h"
 #include "AcSymbols.h"
@@ -11,6 +12,7 @@
 #include "Helper.h"
 #include "STCA.h"
 #include "MTCD.h"
+#include "VERA.h"
 #include "AntiOverlap.h"
 #include "RouteRenderer.h"
 #include "EuroScopePlugIn.h"
@@ -52,6 +54,7 @@ private:
 	POINT MousePoint = { 0, 0 };
 	CSTCA * StcaInstance;
 	CMTCD * MtcdInstance;
+	CMTCDWindow* MTCDWindow;
 	CFIMWindow* FIMWindow;
 	string DetailedTag = "";
 	string mouseOverTag = "";

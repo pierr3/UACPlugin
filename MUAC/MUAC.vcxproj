@@ -160,6 +160,7 @@
     <ClInclude Include="Helper.h" />
     <ClInclude Include="MenuBar.h" />
     <ClInclude Include="MTCD.h" />
+    <ClInclude Include="MTCDWindow.h" />
     <ClInclude Include="MUAC.h" />
     <ClInclude Include="RadarScreen.h" />
     <ClInclude Include="resource.h" />
@@ -171,6 +172,7 @@
     <ClInclude Include="TagRenderer.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="FIMWindow.h" />
+    <ClInclude Include="VERA.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CallsignLookup.cpp" />

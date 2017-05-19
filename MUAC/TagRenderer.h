@@ -85,13 +85,27 @@ public:
 					dc->SetTextColor(Colours::YellowWarning.ToCOLORREF());
 				}
 
+				bool needBacktick = false;
+				if (TagItem.Text.compare(0, PREFIX_BACKSTEP.length(), PREFIX_BACKSTEP) == 0) {
+					needBacktick = true;
+					TagItem.Text.erase(0, PREFIX_BACKSTEP.length());
+				}
+
 				if (TagItem.Text.compare(0, PREFIX_PURPLE_COLOR.length(), PREFIX_PURPLE_COLOR) == 0) {
 					dc->SetTextColor(Colours::PurpleDisplay.ToCOLORREF());
 					TagItem.Text.erase(0, PREFIX_PURPLE_COLOR.length());
 				}
+
+				if (TagItem.Text.compare(0, PREFIX_ORANGE_COLOR.length(), PREFIX_ORANGE_COLOR) == 0) {
+					dc->SetTextColor(Colours::OrangeTool.ToCOLORREF());
+					TagItem.Text.erase(0, PREFIX_ORANGE_COLOR.length());
+				}
 					
 				MeasureRect = dc->GetTextExtent(TagItem.Text.c_str());
 				
+				if (needBacktick)
+					leftOffset -= (MeasureRect.cx + 5);
+
 				dc->TextOutA(TagTopLeft.x + leftOffset, TagTopLeft.y + topOffset, TagItem.Text.c_str());
 
 				CRect TextBox(TagTopLeft.x + leftOffset, TagTopLeft.y + topOffset, 
@@ -109,7 +123,7 @@ public:
 				if (isDetailed && TagItem.ClickId != 0)
 					DetailedTagClicks->insert(pair<int, CRect>(TagItem.ClickId, TextBox));
 				
-				if (NeedPrimaryAreaSet && TagItem.Text != " " && TagItem.TagType != "Warning") {
+				if (NeedPrimaryAreaSet && TagItem.Text != " " && TagItem.TagType != "FPM" && TagItem.TagType != "RTEM" && TagItem.TagType != "V") {
 					PrimaryArea = TextBox;
 					NeedPrimaryAreaSet = false;
 				}
@@ -118,7 +132,7 @@ public:
 				dc->SetTextColor(PrimaryColor);
 
 				// We don't need a blank space if it's one of the empty items
-				if (TagItem.Text != " ")
+				if (TagItem.Text != " " && TagItem.TagType != "V")
 					leftOffset += 5;
 			}
 			topOffset += (int)MeasureRect.cy;

@@ -13,6 +13,8 @@ const string PLUGIN_COPY = "GPL v3";
 #define MUAC_RADAR_SCREEN_VIEW "MUAC Radar Screen"
 
 const string PREFIX_PURPLE_COLOR = "_/";
+const string PREFIX_ORANGE_COLOR = "_-";
+const string PREFIX_BACKSTEP = "_'";
 
 const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;
@@ -60,6 +62,8 @@ const int FIM_STAR = 502;
 const int FIM_RWY = 503;
 const int FIM_SCRATCHPAD = 504;
 
+const int MTCD_WINDOW = 551;
+
 // Clickable tag items
 
 const int SCREEN_TAG_CALLSIGN = 701;
@@ -71,7 +75,7 @@ const int SCREEN_TAG_RFL = 706;
 const int SCREEN_TAG_XFL = 707;
 const int SCREEN_TAG_COP = 708;
 const int SCREEN_TAG_SEP = 709;
-const int SCREEN_TAG_WARNING = 710;
+const int SCREEN_TAG_SSR = 710;
 const int SCREEN_TAG_ASPEED = 711;
 
 // Functions

@@ -1,4 +1,6 @@
 #pragma once
+#include "VERA.h"
+#include "STCA.h"
 #include <EuroScopePlugIn.h>
 #include <string>
 #include <vector>
@@ -16,7 +18,15 @@ public:
 	int mtcd_disable_level = 10500;
 	int max_extrapolate_time = 30;
 
-	vector<string> Alerts;
+	int start_time = CSTCA::time_to_extrapolate/60;
+
+	struct MtcdAlertStruct {
+		string sourceCallsign, conflictCallsign;
+		int minDistanceMin, minDistanceNm;
+		VERA::VERADataStruct vera;
+	};
+
+	vector<MtcdAlertStruct> Alerts;
 
 	void OnRefresh(CPlugIn * pl) {
 		Alerts.clear();
@@ -28,7 +38,7 @@ public:
 		{
 			CFlightPlanPositionPredictions PosPred = fp.GetPositionPredictions();
 
-			if (PosPred.GetPointsNumber() <= 5)
+			if (PosPred.GetPointsNumber() <= start_time)
 				continue;
 
 			// if not following route
@@ -43,11 +53,11 @@ public:
 			if (!fp.GetTrackingControllerIsMe() && fp.GetFPState() != FLIGHT_PLAN_STATE_COORDINATED)
 				continue;
 
-			// We scan up to an hour
-			int toExtract = max(max_extrapolate_time, PosPred.GetPointsNumber());
+			// We scan up to x
+			int toExtract = min(max_extrapolate_time, PosPred.GetPointsNumber());
 
 			// For each minute left in the route, we check for conflicts
-			for (int i = 1; i < toExtract; i++) {
+			for (int i = start_time; i < toExtract; i++) {
 				
 				// If is below the level, then we ignore
 				if (PosPred.GetAltitude(i) < mtcd_disable_level)
@@ -67,7 +77,7 @@ public:
 					if (conflicting.GetCallsign() == fp.GetCallsign())
 						continue;
 
-					if (PosPredConflicting.GetPointsNumber() <= 5)
+					if (PosPredConflicting.GetPointsNumber() <= start_time)
 						continue;
 
 					// if not following route
@@ -81,6 +91,9 @@ public:
 					if (PosPredConflicting.GetPointsNumber() < i)
 						continue;
 
+					if (IsPairInMtcd(fp.GetCallsign(), conflicting.GetCallsign()))
+						continue;
+
 					CPosition conflictingPos = PosPredConflicting.GetPosition(i);
 					
 					// We have an MTCD conflicting on distance, lets save the position with the altitude for probe tool
@@ -88,12 +101,14 @@ public:
 						
 						// We have a true mtcd conflict
 						if (abs(PosPred.GetAltitude(i) - PosPredConflicting.GetAltitude(i)) < mtcd_height) {
+							MtcdAlertStruct alert;
+							alert.sourceCallsign = fp.GetCallsign();
+							alert.conflictCallsign = conflicting.GetCallsign();
+							alert.minDistanceMin = i;
+							alert.minDistanceNm = (int)Pos.DistanceTo(conflictingPos);
+							alert.vera = VERA::Calculate(pl->RadarTargetSelect(fp.GetCallsign()), pl->RadarTargetSelect(conflicting.GetCallsign()));
 
-							if (std::find(Alerts.begin(), Alerts.end(), fp.GetCallsign()) == Alerts.end())
-								Alerts.push_back(fp.GetCallsign());
-							if (std::find(Alerts.begin(), Alerts.end(), conflicting.GetCallsign()) == Alerts.end())
-								Alerts.push_back(conflicting.GetCallsign());
-
+							Alerts.push_back(alert);
 						}
 
 					}
@@ -104,11 +119,23 @@ public:
 		}
 	};
 
-	bool IsMTCD(string cs) {
-		if (std::find(Alerts.begin(), Alerts.end(), cs) != Alerts.end())
-		{
-			return true;
+	bool IsPairInMtcd(string callsign1, string callsign2) {
+		for (auto &data : Alerts) {
+			if (data.sourceCallsign == callsign1 && data.conflictCallsign == callsign2)
+				return true;
+			if (data.sourceCallsign == callsign2 && data.conflictCallsign == callsign1)
+				return true;
 		}
+
+		return false;
+	};
+
+	bool IsMTCD(string callsign) {
+		for (auto &data : Alerts) {
+			if (data.sourceCallsign == callsign || data.conflictCallsign == callsign)
+				return true;
+		}
+
 		return false;
 	};
 };

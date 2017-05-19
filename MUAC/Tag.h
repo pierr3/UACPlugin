@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include "Helper.h"
+#include "MTCD.h"
 #include "Constants.h"
 #include "TagItem.h"
 #include "EuroScopePlugIn.h"
@@ -20,12 +21,18 @@ public:
 
 	// TagItems Definition
 	TagItem CallsignItem = TagItem::CreatePassive("Callsign", SCREEN_TAG_CALLSIGN, TagItem::TagColourTypes::Highlight);
-	TagItem SquawkItem = TagItem::CreatePassive("Squawk");
 	TagItem AltitudeItem = TagItem::CreatePassive("Altitude");
 	TagItem TendencyItem = TagItem::CreatePassive("Tendency");
 
-	TagItem CoumpoundWarning = TagItem::CreatePassive("Warning", SCREEN_TAG_WARNING, TagItem::TagColourTypes::Information);
+	TagItem SSRItem = TagItem::CreatePassive("SSR", SCREEN_TAG_SSR);
+	TagItem RouteMessageIndicator = TagItem::CreatePassive("RTEM");
+
+	TagItem FPMWarnings = TagItem::CreatePassive("FPM", 0, TagItem::TagColourTypes::Information);
 	
+	TagItem SSRIndicatorItem = TagItem::CreatePassive("SSRIndicator");
+
+	TagItem CoordinationIndicatorItem = TagItem::CreatePassive("CoordIndicator");
+
 	// CFL
 	TagItem CFLItem = TagItem::CreatePassive("CFL", SCREEN_TAG_CFL);
 	// Combination of NFL and XFL, depending on the state
@@ -45,30 +52,35 @@ public:
 	TagItem AssignedSpeed = TagItem::CreatePassive("AssignedSpeed", SCREEN_TAG_ASPEED);
 
 	TagItem RouteDisplay = TagItem::CreatePassive("R", SCREEN_TAG_ROUTE);
-	TagItem SepItem = TagItem::CreatePassive("V", SCREEN_TAG_SEP);
+	TagItem SepItem = TagItem::CreatePassive("V", SCREEN_TAG_SEP, TagItem::TagColourTypes::Information);
 
 	TagItem BlankItem = TagItem::CreatePassive(" ");
 
 	// Tag definitions
-	const vector<vector<TagItem>> MinimizedTag = { { AltitudeItem, TendencyItem } };
-	const vector<vector<TagItem>> StandardTag = { { CoumpoundWarning }, { CallsignItem }, 
-	{ AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem }, 
-	{ XFLItem, COPItem }, { ReportedGS, AssignedSpeed } };
+	const vector<vector<TagItem>> MinimizedTag = { { SSRItem }, { AltitudeItem, TendencyItem } };
+	
+	const vector<vector<TagItem>> StandardTag = { 
+		{ SSRItem, RouteMessageIndicator, FPMWarnings }, 
+		{ SepItem, CallsignItem, SSRIndicatorItem },
+		{ AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem }, 
+		{ XFLItem, COPItem }, 
+		{ ReportedGS, VerticalRate, AssignedSpeed } };
+	
 	const vector<vector<TagItem>> MagnifiedTag = { 
-	{ CoumpoundWarning },
-	{ SepItem, CallsignItem, SectorItem },
-	{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
-	{ BlankItem, XFLItem, COPItem, RFLItem },
-	{ BlankItem, ReportedGS, AssignedSpeed } };
+		{ BlankItem, SSRItem, RouteMessageIndicator, FPMWarnings },
+		{ SepItem, CallsignItem, SSRIndicatorItem, SectorItem },
+		{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
+		{ BlankItem, XFLItem, COPItem, RFLItem },
+		{ BlankItem, ReportedGS, VerticalRate, AssignedSpeed } };
 
 	// Tag Object
 
-	Tag(TagStates State, bool IsMagnified, bool IsSoft, bool isModeAButton, bool isVButton, CRadarScreen* radarScreen, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
+	Tag(TagStates State, bool IsMagnified, bool IsSoft, bool isModeAButton, bool isVButton, CRadarScreen* radarScreen, CMTCD* mtcd, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
 
 		this->IsMagnified = IsMagnified;
 		this->IsSoft = IsSoft;
 
-		map<string, string> TagReplacementMap = GenerateTag(radarScreen, isVButton, isModeAButton, RadarTarget, FlightPlan);
+		map<string, string> TagReplacementMap = GenerateTag(radarScreen, isVButton, isModeAButton, RadarTarget, FlightPlan, mtcd);
 
 		if (State == TagStates::NotConcerned && IsSoft)
 			Definition = MinimizedTag;
@@ -116,17 +128,18 @@ public:
 	bool IsSoft;
 
 protected:
-	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isVButton, bool isModeAButton, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
+	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isVButton, bool isModeAButton, CRadarTarget RadarTarget, CFlightPlan FlightPlan, CMTCD* mtcd) {
 
 		map<string, string> TagReplacementMap;
 
 		if (!RadarTarget.IsValid())
 			return TagReplacementMap;
 
-		string callsign = RadarTarget.GetCallsign();
 
-		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED)
-			callsign = callsign;
+		//
+		// Callsign
+		//
+		string callsign = RadarTarget.GetCallsign();
 
 		if (FlightPlan.IsValid() && FlightPlan.IsTextCommunication())
 			callsign += "/t";
@@ -134,10 +147,7 @@ protected:
 		if (FlightPlan.IsValid() && (FlightPlan.GetControllerAssignedData().GetCommunicationType() == 'R' || FlightPlan.GetControllerAssignedData().GetCommunicationType() == 'r'))
 			callsign += "/r";
 
-		if (FlightPlan.IsValid() && FlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED)
-			callsign = callsign;
-
-		if (!IsMagnified) {
+		/*if (!IsMagnified) {
 			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
 			const char * ssr = RadarTarget.GetPosition().GetSquawk();
 			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
@@ -150,12 +160,13 @@ protected:
 					callsign += " ";
 				callsign += "*";
 			}
-		}
+		}*/
 
 		TagReplacementMap.insert(pair<string, string>("Callsign", callsign));
-
-		TagReplacementMap.insert(pair<string, string>("Squawk", RadarTarget.GetPosition().GetSquawk()));
-		// Alt
+		
+		//
+		// Altitude
+		//
 		string alt = to_string((int)RoundTo(RadarTarget.GetPosition().GetFlightLevel(), 100) / 100);
 		
 		if (RadarTarget.GetPosition().GetFlightLevel() <= radarScreen->GetPlugIn()->GetTransitionAltitude())
@@ -163,32 +174,47 @@ protected:
 
 		TagReplacementMap.insert(pair<string, string>("Altitude", alt));
 		
+		//
+		// Ground speed
+		//
 		string gs = "";
-		if (IsMagnified || isVButton) {
-			gs = string("G") + to_string(RadarTarget.GetPosition().GetReportedGS());
-		}
+		if (IsMagnified || isVButton)
+			gs = padWithZeros(4, RadarTarget.GetPosition().GetReportedGS()).substr(0, 4);
 
 		TagReplacementMap.insert(pair<string, string>("ReportedGS", gs));
 
 		TagReplacementMap.insert(pair<string, string>("R", " "));
-		TagReplacementMap.insert(pair<string, string>("V", " ")); // "•"
 
+		string veraDisplay = "";
+		if (IsMagnified)
+			veraDisplay = " ";
+		if (mtcd->IsMTCD(RadarTarget.GetCallsign()))
+			veraDisplay = "•";
+		if (veraDisplay.length() != 0 && !IsMagnified)
+			veraDisplay = PREFIX_BACKSTEP + veraDisplay;
+
+		TagReplacementMap.insert(pair<string, string>("V", veraDisplay));
+
+		//
+		// Vertical speed
+		//
 		string VerticalRate = "00";
 		CRadarTargetPositionData pos = RadarTarget.GetPosition();
 		CRadarTargetPositionData oldpos = RadarTarget.GetPreviousPosition(pos);
+		int mathVerticalRate = 0;
 		if (pos.IsValid() && oldpos.IsValid()) {
 			int deltaalt = pos.GetFlightLevel() - oldpos.GetFlightLevel();
 			int deltaT = oldpos.GetReceivedTime() - pos.GetReceivedTime();
 
 			if (deltaT > 0) {
 				float vz = abs(deltaalt) * (60.0f / deltaT);
+				mathVerticalRate = (int)vz;
 
 				// If the rate is too much
 				if ((int)abs(vz) >= 9999) {
 					VerticalRate = "^++";
 					if (deltaalt < 0)
-						VerticalRate = "|++";
-						
+						VerticalRate = "|++";	
 				}
 				else if (abs(vz) >= 100 && abs(deltaalt) >= 20) {
 					string rate = padWithZeros(2, (int)abs(vz / 100));
@@ -200,63 +226,125 @@ protected:
 			}
 		}
 
+		if (!IsMagnified && !isVButton)
+			VerticalRate = "";
+
 		TagReplacementMap.insert(pair<string, string>("VerticalRate", VerticalRate));
 		
+		//
+		// Tendency
+		//
+		string tendency = "-";
+		int delta_fl = RadarTarget.GetPosition().GetFlightLevel() -
+			RadarTarget.GetPreviousPosition(RadarTarget.GetPosition()).GetFlightLevel();
+		if (abs(delta_fl) >= 50)
+			tendency = delta_fl < 0 ? "|" : "^";
+
+		TagReplacementMap.insert(pair<string, string>("Tendency", tendency));
+
+		//
+		// SSR
+		//
+		string ssrItem = "";
+		if (isModeAButton) {
+			ssrItem = "A" + string(RadarTarget.GetPosition().GetSquawk());
+		}
+		else if (FlightPlan.IsValid() && IsMagnified) {
+			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
+			const char * ssr = RadarTarget.GetPosition().GetSquawk();
+			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+				ssrItem = "N" + string(assr);
+			}
+			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
+				ssrItem += "CODE";
+			}
+		}
+
+		TagReplacementMap.insert(pair<string, string>("SSR", ssrItem));
+
 		if (FlightPlan.IsValid()) {
 			
+			//
+			// FPM Warning
+			//
 			string warning = "";
+
+			// Priority start with lowest, then goes to highest
+			int deltaFLCFL = RadarTarget.GetPosition().GetFlightLevel() - FlightPlan.GetClearedAltitude();
+
+			if (FlightPlan.GetClearedAltitude() != 0) {
+				if (abs(deltaFLCFL) < 200 && abs(mathVerticalRate) > 1500) {
+					warning = "BUST?";
+				}
+				if (abs(deltaFLCFL) >= 200 && abs(deltaFLCFL) <= 400 && abs(mathVerticalRate) > 4000) {
+					warning = "BUST?";
+				}
+			}
+
+			if (FlightPlan.GetControllerAssignedData().GetAssignedRate() !=0 && 
+				abs(mathVerticalRate-FlightPlan.GetControllerAssignedData().GetAssignedRate()) >= 300) {
+				warning = "VRC";
+			}
 
 			if (FlightPlan.GetCLAMFlag())
 				warning = "LVL";
+
+			// First, vertical rate check by priority
+			if (FlightPlan.GetClearedAltitude() != 0 && FlightPlan.GetClearedAltitude() != 1 && FlightPlan.GetClearedAltitude() != 2) {
+				
+				if (RadarTarget.GetPosition().GetFlightLevel() > FlightPlan.GetClearedAltitude() && mathVerticalRate >= 150 && deltaFLCFL <= -250) {
+					warning = "BUST";
+				}
+
+				if (RadarTarget.GetPosition().GetFlightLevel() < FlightPlan.GetClearedAltitude() && mathVerticalRate <= -150 && deltaFLCFL >= 250) {
+					warning = "BUST";
+				}
+			}
+
+			// Now the route flags
+			if (warning.length() != 0 && FlightPlan.GetRAMFlag())
+				warning += "+";
 			if (FlightPlan.GetRAMFlag())
-				warning = "RAM";
-			if (FlightPlan.GetRAMFlag() && FlightPlan.GetCLAMFlag())
-				warning = "L+R";
+				warning += "RTE";
 
-			if (strlen(FlightPlan.GetControllerAssignedData().GetScratchPadString()) != 0) {
-				if (warning.length() != 0)
-					warning += " ";
-				warning += "!";
+			TagReplacementMap.insert(pair<string, string>("FPM", warning.c_str()));
+
+			//
+			// RTE Message
+			//
+			string rteMsg = "";
+			if (strlen(FlightPlan.GetControllerAssignedData().GetScratchPadString()) != 0)
+				rteMsg = "!";
+
+			TagReplacementMap.insert(pair<string, string>("RTEM", rteMsg.c_str()));
+
+			//
+			// SSR Indicator
+			//
+			string ssrIndicator = "";
+			const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
+			const char * ssr = RadarTarget.GetPosition().GetSquawk();
+			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+				ssrIndicator = "*";
 			}
-
-			if (IsMagnified) {
-				const char * assr = FlightPlan.GetControllerAssignedData().GetSquawk();
-				const char * ssr = RadarTarget.GetPosition().GetSquawk();
-				if (isModeAButton) {
-					if (warning.length() != 0)
-						warning += " ";
-					warning += "N" + string(ssr);
-				}
-				else if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
-					if (warning.length() != 0)
-						warning += " ";
-					warning += string(assr);
-				}
-				else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
-					if (warning.length() != 0)
-						warning += " ";
-					warning += "CODE";
-				}
+			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
+				ssrIndicator += "*";
 			}
-
-			if (IsMagnified && warning.length() != 0)
-				warning = " " + warning;
-
-			TagReplacementMap.insert(pair<string, string>("Warning", warning.c_str()));
+			
+			TagReplacementMap.insert(pair<string, string>("SSRIndicator", ssrIndicator.c_str()));
 
 			// RFL
-			string RFL = padWithZeros(3, FlightPlan.GetControllerAssignedData().GetFinalAltitude() / 100);
+			string RFL = padWithZeros(5, FlightPlan.GetControllerAssignedData().GetFinalAltitude());
 
 			if (FlightPlan.GetControllerAssignedData().GetFinalAltitude() == 0)
-				RFL = padWithZeros(3, FlightPlan.GetFlightPlanData().GetFinalAltitude() / 100);
+				RFL = padWithZeros(5, FlightPlan.GetFlightPlanData().GetFinalAltitude());
 
 			RFL = RFL.substr(0, 2);
 
 			TagReplacementMap.insert(pair<string, string>("RFL", RFL));
 
 			// CFL
-			string CFL = padWithZeros(3, FlightPlan.GetClearedAltitude() / 100);
-			CFL = CFL.substr(0, 2);
+			string CFL = padWithZeros(5, FlightPlan.GetClearedAltitude()).substr(0, 2);
 
 			if (FlightPlan.GetClearedAltitude() == 0)
 				CFL = RFL;
@@ -394,14 +482,6 @@ protected:
 
 			TagReplacementMap.insert(pair<string, string>("COP", COP));
 		}
-
-		string tendency = "-";
-		int delta_fl = RadarTarget.GetPosition().GetFlightLevel() -
-			RadarTarget.GetPreviousPosition(RadarTarget.GetPosition()).GetFlightLevel();
-		if (abs(delta_fl) >= 50)
-			tendency = delta_fl < 0 ? "|" : "^";
-
-		TagReplacementMap.insert(pair<string, string>("Tendency", tendency));
 
 		return TagReplacementMap;
 	}

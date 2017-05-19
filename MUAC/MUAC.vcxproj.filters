@@ -78,6 +78,12 @@
     <ClInclude Include="CallsignLookup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MTCDWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VERA.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

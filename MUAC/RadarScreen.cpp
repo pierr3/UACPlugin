@@ -14,6 +14,7 @@ RadarScreen::RadarScreen()
 	StcaInstance = new CSTCA();
 	MtcdInstance = new CMTCD();
 
+	MTCDWindow = new CMTCDWindow({ 500, 200 });
 	FIMWindow = new CFIMWindow({500, 500});
 
 	OneSecondTimer = clock();
@@ -181,45 +182,30 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 				CRect AreaRemoveTool = { TextPositon.x, TextPositon.y, TextPositon.x + Measure.cx, TextPositon.y + Measure.cy };
 
-				CPosition Prediction;
-				CPosition PredictionOther;
-				double lastDistance = FirstTargetPos.DistanceTo(SecondTargetPos);
-				for (int i = 30; i <= 60 * 30; i += 10) {
-					Prediction = Extrapolate(FirstTargetPos, FirstTarget.GetTrackHeading(),
-						FirstTarget.GetPosition().GetReportedGS()*0.514444*i);
-					PredictionOther = Extrapolate(SecondTargetPos, SecondTarget.GetTrackHeading(),
-						SecondTarget.GetPosition().GetReportedGS()*0.514444*i);
+				VERA::VERADataStruct vera = VERA::Calculate(FirstTarget, SecondTarget);
 
-					// The distance started to increase, we passed the minimum point
-					if (Prediction.DistanceTo(PredictionOther) > lastDistance) {
-						if (lastDistance == FirstTargetPos.DistanceTo(SecondTargetPos))
-							break;
+				if (vera.minDistanceNm != -1) {
+					CPosition velocity = Extrapolate(vera.predictedFirstPos, FirstTarget.GetTrackHeading(),
+						FirstTarget.GetPosition().GetReportedGS()*0.514444*MenuBar::GetVelValueButtonPressed(ButtonsPressed));
+					DrawHourGlassWithLeader(&dc, ConvertCoordFromPositionToPixel(vera.predictedFirstPos),
+						ConvertCoordFromPositionToPixel(velocity));
 
-						CPosition velocity = Extrapolate(Prediction, FirstTarget.GetTrackHeading(),
-							FirstTarget.GetPosition().GetReportedGS()*0.514444*MenuBar::GetVelValueButtonPressed(ButtonsPressed));
-						DrawHourGlassWithLeader(&dc, ConvertCoordFromPositionToPixel(Prediction),
-							ConvertCoordFromPositionToPixel(velocity));
+					velocity = Extrapolate(vera.predictedSecondPos, SecondTarget.GetTrackHeading(),
+						SecondTarget.GetPosition().GetReportedGS()*0.514444*MenuBar::GetVelValueButtonPressed(ButtonsPressed));
+					DrawHourGlassWithLeader(&dc, ConvertCoordFromPositionToPixel(vera.predictedSecondPos),
+						ConvertCoordFromPositionToPixel(velocity));
 
-						velocity = Extrapolate(PredictionOther, SecondTarget.GetTrackHeading(),
-							SecondTarget.GetPosition().GetReportedGS()*0.514444*MenuBar::GetVelValueButtonPressed(ButtonsPressed));
-						DrawHourGlassWithLeader(&dc, ConvertCoordFromPositionToPixel(PredictionOther),
-							ConvertCoordFromPositionToPixel(velocity));
+					distanceText = to_string(vera.minDistanceNm);
+					decimal_pos = distanceText.find(".");
+					distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
 
-						distanceText = to_string(Prediction.DistanceTo(PredictionOther));
-						decimal_pos = distanceText.find(".");
-						distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
-
-						distanceText = to_string((int)i / 60) + "'" + to_string((int)i % 60) + '"' + "/" + distanceText;
-
-						dc.TextOutA(TextPositon.x, TextPositon.y + Measure.cy, distanceText.c_str());
-						AreaRemoveTool.right = max(AreaRemoveTool.right, TextPositon.x + Measure.cx);
-						AreaRemoveTool.bottom = TextPositon.y + Measure.cy * 2;
-
-						break;
-					}
-						
-					lastDistance = Prediction.DistanceTo(PredictionOther);
+					distanceText = to_string((int)vera.minDistanceSeconds / 60) + "'" + 
+						to_string((int)vera.minDistanceSeconds % 60) + '"' + "/" + distanceText;
+					dc.TextOutA(TextPositon.x, TextPositon.y + Measure.cy, distanceText.c_str());
 				}
+
+				AreaRemoveTool.right = max(AreaRemoveTool.right, TextPositon.x + Measure.cx);
+				AreaRemoveTool.bottom = TextPositon.y + Measure.cy * 2;
 
 				POINT ClipFrom, ClipTo;
 				if (LiangBarsky(AreaRemoveTool, MidPointDistance, AreaRemoveTool.CenterPoint(), ClipFrom, ClipTo)) {
@@ -393,7 +379,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				continue;
 
 			Tag t = Tag(AcState, isDetailed, IsSoft, ButtonsPressed[BUTTON_MODE_A], 
-				ButtonsPressed[BUTTON_LABEL_V], this, radarTarget, CheatFlightPlan);
+				ButtonsPressed[BUTTON_LABEL_V], this, MtcdInstance, radarTarget, CheatFlightPlan);
 
 			// Getting the tag center
 			if (TagOffsets.find(radarTarget.GetCallsign()) == TagOffsets.end())
@@ -454,6 +440,9 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		// FIM Window
 		CRect r = FIMWindow->Render(&dc, this, MousePoint, GetPlugIn()->RadarTargetSelectASEL(), GetPlugIn()->FlightPlanSelectASEL());
 		AddScreenObject(FIM_WINDOW, "", r, true, "");
+
+		r = MTCDWindow->Render(&dc, this, MousePoint, MtcdInstance, SepToolPairs);
+		AddScreenObject(MTCD_WINDOW, "", r, true, "");
 
 		// Soft Tag deconfliction
 		for (const auto areas : SoftTagAreas)
@@ -560,6 +549,10 @@ void RadarScreen::OnMoveScreenObject(int ObjectType, const char * sObjectId, POI
 
 	if (ObjectType == FIM_WINDOW) {
 		FIMWindow->Move(Area, Released);
+	}
+
+	if (ObjectType == MTCD_WINDOW) {
+		MTCDWindow->Move(Area, Released);
 	}
 
 	RequestRefresh();
@@ -767,7 +760,7 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 
 		}
 
-		if (ObjectType == SCREEN_TAG_WARNING)
+		if (ObjectType == SCREEN_TAG_SSR)
 			FunctionId = TAG_ITEM_FUNCTION_SQUAWK_POPUP;
 
 		if (ObjectType == SCREEN_TAG_ASPEED) {
