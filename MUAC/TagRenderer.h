@@ -104,7 +104,7 @@ public:
 				MeasureRect = dc->GetTextExtent(TagItem.Text.c_str());
 				
 				if (needBacktick)
-					leftOffset -= (MeasureRect.cx + 5);
+					leftOffset -= MeasureRect.cx;
 
 				dc->TextOutA(TagTopLeft.x + leftOffset, TagTopLeft.y + topOffset, TagItem.Text.c_str());
 

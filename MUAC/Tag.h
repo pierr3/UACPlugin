@@ -67,7 +67,7 @@ public:
 		{ ReportedGS, VerticalRate, AssignedSpeed } };
 	
 	const vector<vector<TagItem>> MagnifiedTag = { 
-		{ BlankItem, SSRItem, RouteMessageIndicator, FPMWarnings },
+		{ SSRItem, RouteMessageIndicator, FPMWarnings },
 		{ SepItem, CallsignItem, SSRIndicatorItem, SectorItem },
 		{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
 		{ BlankItem, XFLItem, COPItem, RFLItem },
@@ -258,6 +258,9 @@ protected:
 			else if (startsWith("2000", ssr) || startsWith("1200", ssr) || startsWith("2200", ssr)) {
 				ssrItem += "CODE";
 			}
+		}
+		if (IsMagnified && ssrItem.length() != 0) {
+			ssrItem = " " + ssrItem;
 		}
 
 		TagReplacementMap.insert(pair<string, string>("SSR", ssrItem));

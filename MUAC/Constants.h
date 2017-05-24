@@ -15,6 +15,7 @@ const string PLUGIN_COPY = "GPL v3";
 const string PREFIX_PURPLE_COLOR = "_/";
 const string PREFIX_ORANGE_COLOR = "_-";
 const string PREFIX_BACKSTEP = "_'";
+const string PREFIX_FORESTEP = "_|";
 
 const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;

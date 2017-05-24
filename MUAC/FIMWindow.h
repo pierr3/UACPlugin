@@ -143,7 +143,7 @@ public:
 			}
 
 			SecondLineString += string(flightPlan.GetFlightPlanData().GetOrigin()) + " " + 
-				string(flightPlan.GetFlightPlanData().GetDestination()) + " ¦";
+				string(flightPlan.GetFlightPlanData().GetDestination()) + "¦";
 
 			SecondLineString += "ECL" + padWithZeros(3, flightPlan.GetFlightPlanData().GetFinalAltitude() / 100) + "¦";
 
