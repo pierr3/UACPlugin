@@ -20,6 +20,8 @@ const string PREFIX_FORESTEP = "_|";
 const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;
 
+const int RDF_CIRCLE_SIZE = 40;
+
 const int SCREEN_SEP_TOOL = 20;
 
 const int DRAWING_AC_SQUARE_SYMBOL_SIZE = 4;
@@ -42,20 +44,24 @@ const int BUTTON_FILTER_SOFT_LOW = 407;
 const int BUTTON_FILTER_SOFT_HIGH = 408;
 const int BUTTON_FILTER_HARD_HIGH = 409;
 
-const int BUTTON_MODE_A = 410;
-const int BUTTON_LABEL_V = 411;
+const int BUTTON_RDF = 410;
+const int BUTTON_QDM = 411;
+const int BUTTON_TOPDOWN = 412;
 
-const int BUTTON_PRIMARY_TARGETS_ON = 412;
+const int BUTTON_MODE_A = 413;
+const int BUTTON_LABEL_V = 414;
 
-const int BUTTON_VFR_ON = 413;
+const int BUTTON_PRIMARY_TARGETS_ON = 415;
 
-const int BUTTON_VELOTH = 414;
-const int BUTTON_VEL1 = 415;
-const int BUTTON_VEL2 = 416;
-const int BUTTON_VEL4 = 417;
-const int BUTTON_VEL8 = 418;
+const int BUTTON_VFR_ON = 416;
 
-const int BUTTON_DOTS = 419;
+const int BUTTON_VELOTH = 417;
+const int BUTTON_VEL1 = 418;
+const int BUTTON_VEL2 = 419;
+const int BUTTON_VEL4 = 420;
+const int BUTTON_VEL8 = 421;
+
+const int BUTTON_DOTS = 422;
 
 const int FIM_WINDOW = 501;
 

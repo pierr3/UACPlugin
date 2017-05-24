@@ -237,7 +237,7 @@ protected:
 		string tendency = "-";
 		int delta_fl = RadarTarget.GetPosition().GetFlightLevel() -
 			RadarTarget.GetPreviousPosition(RadarTarget.GetPosition()).GetFlightLevel();
-		if (abs(delta_fl) >= 50)
+		if (abs(delta_fl) >= 10)
 			tendency = delta_fl < 0 ? "|" : "^";
 
 		TagReplacementMap.insert(pair<string, string>("Tendency", tendency));
@@ -342,12 +342,27 @@ protected:
 			if (FlightPlan.GetControllerAssignedData().GetFinalAltitude() == 0)
 				RFL = padWithZeros(5, FlightPlan.GetFlightPlanData().GetFinalAltitude());
 
-			RFL = RFL.substr(0, 2);
+			if (RFL[2] != '0')
+				RFL = RFL.substr(0, 3);
+			else
+				RFL = RFL.substr(0, 2);
+			
 
 			TagReplacementMap.insert(pair<string, string>("RFL", RFL));
 
 			// CFL
-			string CFL = padWithZeros(5, FlightPlan.GetClearedAltitude()).substr(0, 2);
+			string CFLpadded = padWithZeros(5, FlightPlan.GetClearedAltitude());
+			string CFL = CFLpadded.substr(0, 2);
+
+			if (CFLpadded[2] != '0')
+				CFL += CFLpadded[2];
+
+			if (FlightPlan.GetClearedAltitude() != 0 && FlightPlan.GetClearedAltitude() <= radarScreen->GetPlugIn()->GetTransitionAltitude()) {
+				CFL = "A" + CFLpadded.substr(1, 1);
+
+				if (CFLpadded[2] != '0')
+					CFL += CFLpadded[2];
+			}
 
 			if (FlightPlan.GetClearedAltitude() == 0)
 				CFL = RFL;

@@ -15,6 +15,7 @@
 #include <GdiPlus.h>
 #include <math.h>
 #pragma comment (lib,"Gdiplus.lib")
+#pragma comment(lib, "Wininet")
 #define _USE_MATH_DEFINES
 
 

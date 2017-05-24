@@ -4,6 +4,7 @@
 #include <string>
 #include "Helper.h"
 #include "Constants.h"
+#include "RDF.h"
 #include "EuroScopePlugIn.h"
 
 using namespace std;

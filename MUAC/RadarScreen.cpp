@@ -35,6 +35,8 @@ void RadarScreen::LoadAllData()
 	ButtonsPressed[BUTTON_PRIMARY_TARGETS_ON] = true;
 	ButtonsPressed[BUTTON_DOTS] = true;
 
+	ButtonsPressed[BUTTON_RDF] = RDF::Enabled;
+
 	LoadFilterButtonsData();
 }
 
@@ -264,6 +266,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		CFlightPlan CheatFlightPlan = GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign());
 		bool isCorrelated = CorrelatedFlightPlan.IsValid();
 		int Altitude = radarTarget.GetPosition().GetFlightLevel();
+		POINT radarTargetPoint = ConvertCoordFromPositionToPixel(radarTarget.GetPosition().GetPosition());
 
 		Tag::TagStates AcState = Tag::TagStates::NotConcerned;
 
@@ -272,14 +275,45 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 		bool HideTarget = false;
 
-		/// 
-		/// Filtering
-		///
-		if (ButtonsPressed[BUTTON_FILTER_ON]) {
+		//
+		// RDF display
+		//
+		if (RDF::Enabled && RDF::CurrentlyTransmitting == radarTarget.GetCallsign()) {
+			int rdfDc = dc.SaveDC();
 
-			// If is below 60kts, don't show
-			if (radarTarget.GetPosition().GetReportedGS() < 60)
-				HideTarget = true;
+			POINT RDFPosition = ConvertCoordFromPositionToPixel(
+				Extrapolate(radarTarget.GetPosition().GetPosition(), RDF::RandomizedOffsetDirection, RDF::RandomizedOffsetDistance));
+
+			CPen rdfPen(PS_SOLID, 1, Colours::AircraftLightGrey.ToCOLORREF());
+			dc.SelectObject(&rdfPen);
+			dc.SelectStockObject(NULL_BRUSH);
+
+			CRect circle = { RDFPosition.x - RDF_CIRCLE_SIZE, RDFPosition.y - RDF_CIRCLE_SIZE,
+				RDFPosition.x + RDF_CIRCLE_SIZE, RDFPosition.y + RDF_CIRCLE_SIZE };
+
+			dc.Ellipse(circle);
+
+			// Outside of view, we show the a line to it
+			if (!IsInRect(RDFPosition, RadarArea)) {
+				dc.MoveTo(RadarArea.CenterPoint());
+				dc.LineTo(RDFPosition);
+
+				CRect centerCircle = { RadarArea.CenterPoint().x - (int)RDF_CIRCLE_SIZE/2, RadarArea.CenterPoint().y - (int)RDF_CIRCLE_SIZE / 2,
+					RadarArea.CenterPoint().x + (int)RDF_CIRCLE_SIZE / 2, RadarArea.CenterPoint().y + (int)RDF_CIRCLE_SIZE / 2 };
+				dc.Ellipse(centerCircle);
+			}
+
+			dc.RestoreDC(rdfDc);
+		}
+
+		// If is below 60kts, don't show
+		if (radarTarget.GetPosition().GetReportedGS() < 60)
+			HideTarget = true;
+
+		// 
+		// Filtering
+		//
+		if (ButtonsPressed[BUTTON_FILTER_ON]) {
 
 			// If not in between the hard filters, we don't show it.
 			if (Altitude <= RadarFilters.Hard_Low && !IsPrimary)
@@ -304,8 +338,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		}
 			
 		bool isDetailed = DetailedTag == radarTarget.GetCallsign();
-		POINT radarTargetPoint = ConvertCoordFromPositionToPixel(radarTarget.GetPosition().GetPosition());
-
+		
 		// Determining the tag state
 		if (isCorrelated) {
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_NOTIFIED)
@@ -434,6 +467,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		range = ((range + 10 / 2) / 10) * 10;
 		MenuButtons[BUTTON_RANGE] = to_string(range) + " =";
 		
+		ButtonsPressed[BUTTON_RDF] = RDF::Enabled;
+
 		// Menubar
 		MenuBar::DrawMenuBar(&dc, this, { RadarArea.left, RadarArea.top + 1 }, MousePoint, MenuButtons, ButtonsPressed);
 
@@ -600,6 +635,12 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 			GetPlugIn()->OpenPopupList(Area, "Filter", 1);
 			FillInAltitudeList(GetPlugIn(), ObjectType, Current);
 		}
+
+		if (ObjectType == BUTTON_RDF)
+			RDF::Enabled = ButtonsPressed[ObjectType];
+
+		if (ObjectType == BUTTON_QDM)
+			ButtonsPressed[BUTTON_QDM] = false;
 
 		if (ObjectType == BUTTON_DECREASE_RANGE || ObjectType == BUTTON_INCREASE_RANGE) {
 			ButtonsPressed[ObjectType] = false;

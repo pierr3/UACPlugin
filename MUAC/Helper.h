@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <random>
 #include <iomanip>
 #include "Colours.h"
 #include "CallsignLookup.h"
@@ -39,6 +40,14 @@ inline static bool IsInRect(POINT pt, CRect rect) {
 	if (pt.x >= rect.left + 1 && pt.x <= rect.right - 1 && pt.y >= rect.top + 1 && pt.y <= rect.bottom - 1)
 		return true;
 	return false;
+}
+
+inline static int RandomInt(int min, int max) {
+	std::random_device rd;
+	std::mt19937 rng(rd());
+	std::uniform_int_distribution<int> uni(min, max);
+
+	return uni(rng);
 }
 
 static void DrawHourGlassWithLeader(CDC * dc, POINT Position, POINT PositionOfLeader) {

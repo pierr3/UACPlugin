@@ -50,9 +50,11 @@ public:
 				continue;
 
 			// MTCD Only works for assumed flights and incoming flights
-			if (!fp.GetTrackingControllerIsMe() && fp.GetFPState() != FLIGHT_PLAN_STATE_COORDINATED)
-				continue;
-
+			if (!fp.GetTrackingControllerIsMe()) {
+				if (fp.GetFPState() != FLIGHT_PLAN_STATE_COORDINATED)
+					continue;
+			}
+				
 			// We scan up to x
 			int toExtract = min(max_extrapolate_time, PosPred.GetPointsNumber());
 

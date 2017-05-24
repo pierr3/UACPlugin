@@ -21,5 +21,8 @@ namespace Colours {
 	const Color MenuButtonTop(165, 165, 165);
 	const Color MenuButtonBottom(74, 74, 74);
 	const Color GreyTextMenu(162, 162, 162);
+
+	const Color SectorActive(4, 7, 14);
+	const Color SectorInactive(22, 22, 22);
 }
 
