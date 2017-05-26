@@ -30,6 +30,7 @@ public:
 
 		bool NeedPrimaryAreaSet = true;
 		CRect PrimaryArea;
+		map<int, CRect> LineAreas;
 
 		// Used for the rest
 		COLORREF PrimaryColor = Colours::AircraftDarkGrey.ToCOLORREF();
@@ -69,6 +70,7 @@ public:
 		if (isDetailed)
 			FontManager::SelectBoldBigFont(dc);
 
+		int i = 0;
 		for (auto TagLine : Definition) {
 			// For each item
 			CSize MeasureRect = { 0, 0 };
@@ -134,6 +136,17 @@ public:
 				// We don't need a blank space if it's one of the empty items
 				if (TagItem.Text != " " && TagItem.TagType != "V")
 					leftOffset += 5;
+
+				// See if we don't have an empty tag, if not we add it to the detection list
+				//if (TagItem.Text != " ") {
+					if (LineAreas.find(i) != LineAreas.end()) {
+						LineAreas[i].right = TextBox.right;
+					}
+					else {
+						LineAreas.insert(pair<int, CRect>(i, TextBox));
+					}
+				//}
+
 			}
 			topOffset += (int)MeasureRect.cy;
 
@@ -142,38 +155,57 @@ public:
 				TagWidth = leftOffset;
 
 			leftOffset = 0;
+
+			i++;
 		}
 
 		// Rendering the leaderline
 
 		RECT Area = { TagTopLeft.x , TagTopLeft.y, TagTopLeft.x + TagWidth, TagTopLeft.y + topOffset };
-
 		POINT Center = { (Area.left + Area.right) /2, (Area.top + Area.bottom) / 2 };
+		int Size = DRAWING_AC_SQUARE_SYMBOL_SIZE + DRAWING_PADDING;
+		CRect SymbolArea(AcPosition.x - Size, AcPosition.y - Size, AcPosition.x + Size, AcPosition.y + Size);
 
-		// First we calculate the area around the tag
-		POINT toDraw1, toDraw2;
-		if (LiangBarsky(Area, AcPosition, PrimaryArea.CenterPoint(), toDraw1, toDraw2)) {
-			// Then we substract the symbol as well
-			POINT TagPoint = toDraw1;
+		COLORREF leaderLineColor = tag.IsSoft ? Colours::AircraftDarkGrey.ToCOLORREF() : Colours::AircraftLightGrey.ToCOLORREF();
 
-			int Size = DRAWING_AC_SQUARE_SYMBOL_SIZE + DRAWING_PADDING;
+		if (isStca)
+			leaderLineColor = Colours::YellowHighlight.ToCOLORREF();
 
-			CRect SymbolArea(AcPosition.x - Size, AcPosition.y - Size,
-				AcPosition.x + Size, AcPosition.y + Size);
+		CPen leaderLinePen(PS_SOLID, 1, leaderLineColor);
 
-			POINT toDraw4, toDraw5;
-			if (LiangBarsky(SymbolArea, AcPosition, TagPoint, toDraw4, toDraw5)) {
+		CPen leaderLineYellow(PS_SOLID, 1, Colours::YellowHighlight.ToCOLORREF());
+		CPen leaderLineRed(PS_SOLID, 1, Colours::RedWarning.ToCOLORREF());
 
-				COLORREF leaderLineColor = tag.IsSoft ? Colours::AircraftDarkGrey.ToCOLORREF() : Colours::AircraftLightGrey.ToCOLORREF();
+		dc->SelectStockObject(NULL_BRUSH);
 
-				if (isStca)
-					leaderLineColor = Colours::YellowHighlight.ToCOLORREF();
+		// First we get the starting point next to the Target
+		POINT liangOrigin, liangEnd, drawingPoint;
+		if (LiangBarsky(SymbolArea, AcPosition, Center, liangOrigin, liangEnd)) {
+			drawingPoint = liangEnd;
 
-				CPen leaderLinePen(PS_SOLID, 1, leaderLineColor);
+			// Now for each line we calculate the intersection
+			bool t = false;
+			for (auto lineArea : LineAreas) {
 				dc->SelectObject(&leaderLinePen);
-				dc->MoveTo(toDraw5.x, toDraw5.y);
-				dc->LineTo(TagPoint.x, TagPoint.y);
+				dc->Rectangle(lineArea.second);
+
+				t = !t;
+				liangOrigin = { 0, 0 }; liangEnd = { 0, 0 };
+				if (LiangBarsky(lineArea.second, AcPosition, Center, liangOrigin, liangEnd)) {
+					if (t)
+						dc->SelectObject(&leaderLineRed);
+					else
+						dc->SelectObject(&leaderLineYellow);
+
+					dc->MoveTo(drawingPoint);
+					dc->LineTo(liangOrigin);
+
+					drawingPoint = liangEnd;
+				}
+
 			}
+			
+			
 		}
 		
 		dc->RestoreDC(save);
