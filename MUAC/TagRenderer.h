@@ -178,36 +178,56 @@ public:
 
 		dc->SelectStockObject(NULL_BRUSH);
 
+		// we use a vector to store the points we're gonna draw
+		vector<pair<POINT, POINT>> clippedLeaderLine;
+
 		// First we get the starting point next to the Target
-		POINT liangOrigin, liangEnd, drawingPoint;
+		POINT liangOrigin, liangEnd, firstPoint;
 		if (LiangBarsky(SymbolArea, AcPosition, Center, liangOrigin, liangEnd)) {
-			drawingPoint = liangEnd;
-
-			// Now for each line we calculate the intersection
-			bool t = false;
+			firstPoint = liangEnd;
+			// Add any points that are in between
 			for (auto lineArea : LineAreas) {
-				dc->SelectObject(&leaderLinePen);
-				dc->Rectangle(lineArea.second);
 
-				t = !t;
 				liangOrigin = { 0, 0 }; liangEnd = { 0, 0 };
-				if (LiangBarsky(lineArea.second, AcPosition, Center, liangOrigin, liangEnd)) {
-					if (t)
-						dc->SelectObject(&leaderLineRed);
-					else
-						dc->SelectObject(&leaderLineYellow);
-
-					dc->MoveTo(drawingPoint);
-					dc->LineTo(liangOrigin);
-
-					drawingPoint = liangEnd;
+				if (LiangBarsky(lineArea.second, firstPoint, Center, liangOrigin, liangEnd)) {
+					clippedLeaderLine.push_back(pair<POINT, POINT>(liangOrigin, liangEnd));
+					
+					dc->SelectObject(leaderLineRed);
+					DrawCross(dc, liangOrigin, 10);
+					DrawCross(dc, liangEnd, 10);
+					dc->SelectObject(leaderLineYellow);
+				}
+				else {
+					dc->SelectObject(leaderLineRed);
 				}
 
+				dc->Rectangle(lineArea.second);
+
 			}
-			
-			
+
+			dc->SelectObject(leaderLineRed);
+			bool star = false;
+			int color = 0;
+
+			dc->MoveTo(firstPoint);
+			for (auto pt : clippedLeaderLine) {
+				dc->LineTo(pt.first);
+				dc->MoveTo(pt.second);
+				color++;
+				if (color >= 3) {
+					dc->SelectObject(leaderLineYellow);
+					color = 0;
+				}
+				else {
+					dc->SelectObject(leaderLineRed);
+				}
+			}
+			dc->MoveTo(Center);
 		}
-		
+
+		// We now draw the leaderline, only if even number
+
+	
 		dc->RestoreDC(save);
 
 		return Area;

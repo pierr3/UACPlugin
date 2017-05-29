@@ -50,6 +50,14 @@ inline static int RandomInt(int min, int max) {
 	return uni(rng);
 }
 
+static void DrawCross(CDC* dc, POINT position, int size = 2) {
+	dc->MoveTo(position.x, position.y - size);
+	dc->LineTo(position.x, position.y + size);
+
+	dc->MoveTo(position.x - size, position.y);
+	dc->LineTo(position.x + size, position.y);
+};
+
 static void DrawHourGlassWithLeader(CDC * dc, POINT Position, POINT PositionOfLeader) {
 	int save = dc->SaveDC();
 
