@@ -193,19 +193,19 @@ public:
 					clippedLeaderLine.push_back(pair<POINT, POINT>(liangOrigin, liangEnd));
 					
 					dc->SelectObject(leaderLineRed);
-					DrawCross(dc, liangOrigin, 10);
-					DrawCross(dc, liangEnd, 10);
+					//DrawCross(dc, liangOrigin, 10);
+					//DrawCross(dc, liangEnd, 10);
 					dc->SelectObject(leaderLineYellow);
 				}
 				else {
 					dc->SelectObject(leaderLineRed);
 				}
 
-				dc->Rectangle(lineArea.second);
+				//dc->Rectangle(lineArea.second);
 
 			}
 
-			dc->SelectObject(leaderLineRed);
+			dc->SelectObject(leaderLinePen);
 			bool star = false;
 			int color = 0;
 
@@ -215,11 +215,11 @@ public:
 				dc->MoveTo(pt.second);
 				color++;
 				if (color >= 3) {
-					dc->SelectObject(leaderLineYellow);
+					dc->SelectObject(leaderLinePen);
 					color = 0;
 				}
 				else {
-					dc->SelectObject(leaderLineRed);
+					dc->SelectObject(leaderLinePen);
 				}
 			}
 			dc->MoveTo(Center);
