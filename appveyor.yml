@@ -1,0 +1,58 @@
+# Notes:
+#   - Minimal appveyor.yml file is an empty file. All sections are optional.
+#   - Indent each level of configuration with 2 spaces. Do not use tabs!
+#   - All section names are case-sensitive.
+#   - Section names should be unique on each level.
+
+#---------------------------------#
+#      general configuration      #
+#---------------------------------#
+
+# version format
+version: 0.1.{build}
+
+# branches to build
+branches:
+  # whitelist
+  only:
+    - master
+
+  # blacklist
+  except:
+    - gh-pages
+
+# Maximum number of concurrent jobs for the project
+max_jobs: 1
+
+#---------------------------------#
+#    environment configuration    #
+#---------------------------------#
+
+# Build worker image (VM template)
+os: Visual Studio 2017
+
+#---------------------------------#
+#       build configuration       #
+#---------------------------------#
+
+install:
+  - cmd: git submodule update --init --recursive
+  - cmd: msbuild /version
+
+# build Configuration, i.e. Debug, Release, etc.
+configuration: Release
+
+build_script:
+  - cmd: msbuild "C:\projects\uacplugin\MUAC.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+
+after_build:
+  - cmd: mkdir UAC-nightly
+  - cmd: cp Release\MUAC.dll UAC-nightly\
+  - cmd: 7z a UAC-nightly.zip %APPVEYOR_BUILD_FOLDER%\UAC-nightly\
+
+#---------------------------------#
+#      artifacts configuration    #
+#---------------------------------#
+
+artifacts:
+  - path: UAC-nightly.zip
