@@ -17,6 +17,6 @@
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib, "Wininet")
 #define _USE_MATH_DEFINES
-
+#define _AFXDLL
 
 // TODO: reference additional headers your program requires here
