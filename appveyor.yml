@@ -31,6 +31,9 @@ max_jobs: 1
 # Build worker image (VM template)
 os: Visual Studio 2017
 
+platform:
+  - x86
+
 #---------------------------------#
 #       build configuration       #
 #---------------------------------#
@@ -40,7 +43,7 @@ install:
   - cmd: msbuild /version
 
 # build Configuration, i.e. Debug, Release, etc.
-configuration: Release|Win32
+configuration: Release
 
 build_script:
   - cmd: msbuild "C:\projects\uacplugin\MUAC.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
