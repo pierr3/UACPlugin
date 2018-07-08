@@ -40,7 +40,7 @@ install:
   - cmd: msbuild /version
 
 # build Configuration, i.e. Debug, Release, etc.
-configuration: Release
+configuration: Release|Win32
 
 build_script:
   - cmd: msbuild "C:\projects\uacplugin\MUAC.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
