@@ -1,4 +1,4 @@
-# Upper Area Control PlugIn [![Build status](https://ci.appveyor.com/api/projects/status/0ebifm90mrmmatew?svg=true)](https://ci.appveyor.com/project/pierr3/vsmr)
+# Upper Area Control PlugIn [![Build status](https://ci.appveyor.com/api/projects/status/w0v23weq4dw9e9t7?svg=true)](https://ci.appveyor.com/project/pierr3/UACPlugin)
 
 <p align="center">
 	<img alt="UAC PlugIn header" src="https://pierr3.github.io/UACPlugin/img/header.png"/>
