@@ -13,10 +13,11 @@
 #include <windows.h>
 #include <objidl.h>
 #include <GdiPlus.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
+#include <cmath>
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment(lib, "Wininet")
-#define _USE_MATH_DEFINES
 #define _AFXDLL
 
 // TODO: reference additional headers your program requires here
