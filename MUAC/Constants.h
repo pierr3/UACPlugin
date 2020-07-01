@@ -20,8 +20,6 @@ const string PREFIX_FORESTEP = "_|";
 const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;
 
-const int RDF_CIRCLE_SIZE = 40;
-
 const int SCREEN_SEP_TOOL = 20;
 
 const int DRAWING_AC_SQUARE_SYMBOL_SIZE = 4;

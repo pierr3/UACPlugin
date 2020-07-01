@@ -31,46 +31,6 @@ MUAC::MUAC():CPlugIn(COMPATIBILITY_CODE, PLUGIN_NAME.c_str(), PLUGIN_VERSION.c_s
 
 MUAC::~MUAC() {}
 
-void MUAC::OnTimer(int Counter)
-{
-	if (RDF::Enabled) {
-		if (fRDFString.valid() && fRDFString.wait_for(0ms) == future_status::ready) {
-			
-			// Save who is transmitting
-			RDF::LastTransmitting = RDF::CurrentlyTransmitting;
-			RDF::CurrentlyTransmitting = fRDFString.get();
-
-			// Generate a random offset to simulate errors
-			RDF::RandomizedOffsetDirection = RandomInt(0, 360);
-			RDF::RandomizedOffsetDistance = RandomInt(200, 5500);
-
-			fRDFString = future<string>();
-		}
-	}
-}
-
-void MUAC::OnVoiceReceiveStarted(CGrountToAirChannel Channel)
-{
-	if (RDF::Enabled) {
-		// Query the RDF for currently transmitting station
-		string url = "http://" + string(Channel.GetVoiceServer()) + ":18009/?opts=-R-D";
-		fRDFString = async(LoadRDFCallsign, url.c_str(), string(Channel.GetVoiceChannel()));
-	}
-	
-}
-
-void MUAC::OnVoiceReceiveEnded(CGrountToAirChannel Channel)
-{
-	if (RDF::Enabled) {
-		// Clear up the RDF
-		if (RDF::CurrentlyTransmitting != "")
-			RDF::LastTransmitting = RDF::CurrentlyTransmitting;
-		
-		RDF::CurrentlyTransmitting = "";
-		fRDFString = future<string>();
-	}
-}
-
 CRadarScreen * MUAC::OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated)
 {
 	if (!strcmp(sDisplayName, MUAC_RADAR_SCREEN_VIEW))

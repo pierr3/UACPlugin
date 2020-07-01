@@ -87,9 +87,6 @@
     <ClInclude Include="HttpHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RDF.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -111,9 +108,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HttpHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RDF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
