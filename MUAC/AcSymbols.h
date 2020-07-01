@@ -93,7 +93,7 @@ public:
 		return Area;
 	}
 
-	static void DrawPrimaryTrailAndDiamong(CDC* dc, CRadarScreen* radar, CRadarTarget radarTarget, bool drawTrail) {
+	static CRect DrawPrimaryTrailAndDiamong(CDC* dc, CRadarScreen* radar, CRadarTarget radarTarget, bool drawTrail) {
 		int save = dc->SaveDC();
 
 		COLORREF TrailColor = Colours::AircraftLightGrey.ToCOLORREF();
@@ -138,6 +138,7 @@ public:
 		dc->LineTo(radarTargetPoint.x, radarTargetPoint.y - DiamondSize);
 
 		dc->RestoreDC(save);
+		return CRect(radarTargetPoint.x - DiamondSize, radarTargetPoint.y - DiamondSize, radarTargetPoint.x + DiamondSize, radarTargetPoint.y + DiamondSize);
 	}
 
 	static void DrawSpeedVector(CDC* dc, Tag::TagStates State, CRadarScreen* radar, CRadarTarget radarTarget, bool isPrimary, bool isSoft, int Seconds) {

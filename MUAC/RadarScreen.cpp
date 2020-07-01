@@ -357,7 +357,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 			}
 			else {
-				AcSymbols::DrawPrimaryTrailAndDiamong(&dc, this, radarTarget, ButtonsPressed[BUTTON_DOTS]);
+				CRect r = AcSymbols::DrawPrimaryTrailAndDiamong(&dc, this, radarTarget, ButtonsPressed[BUTTON_DOTS]);
+				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 			}
 
 			if ((IsPrimary || !isCorrelated) && ButtonsPressed[BUTTON_VELOTH]) {
@@ -629,7 +630,13 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 	}
 
 	if (ObjectType == SCREEN_TAG || ObjectType == SCREEN_AC_SYMBOL || ObjectType >= SCREEN_TAG_CALLSIGN) {
-		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+		CRadarTarget radarTarget = GetPlugIn()->RadarTargetSelect(sObjectId);
+
+		bool IsPrimary = !radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI();
+		if (IsPrimary)
+			GetPlugIn()->SetASELAircraft(radarTarget);
+		else
+			GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
 		DetailedTag = sObjectId;
 		if (AcquiringSepTool != "" && AcquiringSepTool != sObjectId) {
 			SepToolPairs.insert(pair<string, string>(AcquiringSepTool, sObjectId));

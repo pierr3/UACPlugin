@@ -103,6 +103,7 @@ public:
 			LeftTextOffset += dc->GetTextExtent("AFRXXXXGAPGAP").cx;
 
 			dc->RestoreDC(dcSaveBold);
+			//FontManager::SelectStandardFont(dc);
 
 			if (CCallsignLookup::Available) {
 				string callsign_code = flightPlan.GetCallsign();
@@ -115,7 +116,7 @@ public:
 
 		// Close button, first one for size, second one for render
 		dc->SetTextAlign(TA_LEFT | TA_TOP);
-		int LeftButtonOffset = TopBar.right - dc->GetTextExtent(" FDM COORD CPDLC MSG X ").cx;
+		int LeftButtonOffset = TopBar.right - dc->GetTextExtent(" FDM COORD CPDLC MSG X ").cx - 2;
 
 		CRect ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "FDM", mousePt, false);
 		LeftButtonOffset += ButtonRect.Size().cx;
@@ -124,6 +125,7 @@ public:
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "CPDLC", mousePt, false);
 		LeftButtonOffset += ButtonRect.Size().cx;
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "MSG", mousePt, false);
+		instance->AddScreenObject(FIM_SCRATCHPAD, flightPlan.GetCallsign(), ButtonRect, false, "");
 		LeftButtonOffset += ButtonRect.Size().cx;
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "X", mousePt, false);
 
