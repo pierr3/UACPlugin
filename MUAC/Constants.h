@@ -42,9 +42,9 @@ const int BUTTON_FILTER_SOFT_LOW = 407;
 const int BUTTON_FILTER_SOFT_HIGH = 408;
 const int BUTTON_FILTER_HARD_HIGH = 409;
 
-const int BUTTON_RDF = 410;
+const int BUTTON_RDF_UNUSED = 410;
 const int BUTTON_QDM = 411;
-const int BUTTON_TOPDOWN = 412;
+const int BUTTON_TOPDOWN_UNUSED = 412;
 
 const int BUTTON_MODE_A = 413;
 const int BUTTON_LABEL_V = 414;
@@ -88,6 +88,20 @@ const int FUNC_FILTER_HARD_LOW = BUTTON_FILTER_HARD_LOW;
 const int FUNC_FILTER_SOFT_LOW = BUTTON_FILTER_SOFT_LOW;
 const int FUNC_FILTER_SOFT_HIGH = BUTTON_FILTER_SOFT_HIGH;
 const int FUNC_FILTER_HARD_HIGH = BUTTON_FILTER_HARD_HIGH;
+
+// Saved Status 
+
+const string SAVE_MTCD_POSX = "MTCDWindowPosX";
+const string SAVE_MTCD_POSY = "MTCDWindowPosY";
+const string SAVE_FIM_POSX = "FIMWindowPosX";
+const string SAVE_FIM_POSY = "FIMWindowPosY";
+
+const string SAVE_HARD_FILTER_LOWER = "UACFilterHardLower";
+const string SAVE_SOFT_FILTER_LOWER = "UACFilterSoftLower";
+const string SAVE_SOFT_FILTER_UPPER = "UACFilterSoftUpper";
+const string SAVE_HARD_FILTER_UPPER = "UACFilterHardUpper";
+
+const string SAVE_VEL_TIME = "UACVELTime";
 
 const enum AircraftStates {
 	NOT_CONCERNED, NOTIFIED, CONCERNED, TRANSFERRED, ASSUMED

@@ -39,6 +39,10 @@ public:
 		TopLeftPosition = { Area.left, Area.top };
 	};
 
+	POINT GetTopLeftPosition() {
+		return TopLeftPosition;
+	};
+
 	CRect Render(CDC* dc, CRadarScreen* instance, POINT mousePt, CMTCD* mtcd, multimap<string, string> veraTools) {
 		int saveDc = dc->SaveDC();
 

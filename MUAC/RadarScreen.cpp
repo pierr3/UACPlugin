@@ -35,8 +35,6 @@ void RadarScreen::LoadAllData()
 	ButtonsPressed[BUTTON_PRIMARY_TARGETS_ON] = true;
 	ButtonsPressed[BUTTON_DOTS] = true;
 
-	ButtonsPressed[BUTTON_RDF] = false;
-
 	LoadFilterButtonsData();
 }
 
@@ -814,3 +812,51 @@ void RadarScreen::OnDoubleClickScreenObject(int ObjectType, const char * sObject
 		StartTagFunction(sObjectId, NULL, TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL, TAG_ITEM_FUNCTION_TAKE_HANDOFF, Pt, Area);
 	}
 }
+
+void RadarScreen::OnAsrContentToBeSaved() {
+	// Saving to ASR all radar screen specific settings
+
+	SaveDataToAsr(SAVE_MTCD_POSX.c_str(), "Position of the UAC MTCD Window", to_string(MTCDWindow->GetTopLeftPosition().x).c_str());
+	SaveDataToAsr(SAVE_MTCD_POSY.c_str(), "Position of the UAC MTCD Window", to_string(MTCDWindow->GetTopLeftPosition().y).c_str());
+
+	SaveDataToAsr(SAVE_FIM_POSX.c_str(), "Position of the UAC FIM Window", to_string(FIMWindow->GetTopLeftPosition().x).c_str());
+	SaveDataToAsr(SAVE_FIM_POSY.c_str(), "Position of the UAC FIM Window", to_string(FIMWindow->GetTopLeftPosition().y).c_str());
+
+	SaveDataToAsr(SAVE_HARD_FILTER_LOWER.c_str(), "UAC Filter settings", to_string(RadarFilters.Hard_Low).c_str());
+	SaveDataToAsr(SAVE_SOFT_FILTER_LOWER.c_str(), "UAC Filter settings", to_string(RadarFilters.Soft_Low).c_str());
+	SaveDataToAsr(SAVE_HARD_FILTER_UPPER.c_str(), "UAC Filter settings", to_string(RadarFilters.Hard_High).c_str());
+	SaveDataToAsr(SAVE_SOFT_FILTER_UPPER.c_str(), "UAC Filter settings", to_string(RadarFilters.Soft_High).c_str());
+
+	SaveDataToAsr(SAVE_VEL_TIME.c_str(), "UAC Velocity Leader Length", to_string(MenuBar::GetVelValueButtonPressed(ButtonsPressed)).c_str());
+};
+
+void RadarScreen::OnAsrContentLoaded(bool Loaded) {
+	if (!Loaded)
+		return;
+
+	const char *j_value, *k_value;
+	// Loading position of the MTCD window
+	if ((j_value = GetDataFromAsr(SAVE_MTCD_POSX.c_str())) != NULL && (k_value = GetDataFromAsr(SAVE_MTCD_POSY.c_str())) != NULL)
+		MTCDWindow->Move(CRect(atoi(j_value), atoi(k_value), 0, 0), true);
+
+	// Loading position of the FIM window
+	if ((j_value = GetDataFromAsr(SAVE_FIM_POSX.c_str())) != NULL && (k_value = GetDataFromAsr(SAVE_FIM_POSY.c_str())) != NULL)
+		FIMWindow->Move(CRect(atoi(j_value), atoi(k_value), 0, 0), true);
+
+	// Loading filter settings
+	if ((j_value = GetDataFromAsr(SAVE_HARD_FILTER_LOWER.c_str())) != NULL)
+		RadarFilters.Hard_Low = atoi(j_value);
+	if ((j_value = GetDataFromAsr(SAVE_SOFT_FILTER_LOWER.c_str())) != NULL)
+		RadarFilters.Soft_Low = atoi(j_value);
+	if ((j_value = GetDataFromAsr(SAVE_HARD_FILTER_UPPER.c_str())) != NULL)
+		RadarFilters.Hard_High = atoi(j_value);
+	if ((j_value = GetDataFromAsr(SAVE_SOFT_FILTER_UPPER.c_str())) != NULL)
+		RadarFilters.Soft_High = atoi(j_value);
+
+	// Displayed the loaded values 
+	LoadFilterButtonsData();
+
+	// Loading vel value
+	if ((j_value = GetDataFromAsr(SAVE_VEL_TIME.c_str())) != NULL)
+		ButtonsPressed = MenuBar::LoadVelValueToButtons(atoi(j_value), ButtonsPressed);
+};

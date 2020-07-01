@@ -36,6 +36,8 @@ public:
 	void OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button);
 	void OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area);
 	void OnDoubleClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button);
+	void OnAsrContentToBeSaved(void);
+	void OnAsrContentLoaded(bool Loaded);
 
 	inline void OnAsrContentToBeClosed(void)
 	{

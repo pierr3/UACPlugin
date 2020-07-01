@@ -28,9 +28,7 @@ public:
 		data[BUTTON_FILTER_SOFT_LOW] = "200 =";
 		data[BUTTON_FILTER_SOFT_HIGH] = "999 =";
 		data[BUTTON_FILTER_HARD_HIGH] = "999 =";
-		data[BUTTON_RDF] = "RDF";
 		data[BUTTON_QDM] = "QDM";
-		data[BUTTON_TOPDOWN] = "T";
 		data[BUTTON_MODE_A] = "A";
 		data[BUTTON_LABEL_V] = "V";
 		data[BUTTON_PRIMARY_TARGETS_ON] = "PR";
@@ -110,5 +108,19 @@ public:
 		if (Data[BUTTON_VEL8])
 			return 60*8;
 		return 0;
+	}
+
+	static map<int, bool> LoadVelValueToButtons(int value, map<int, bool> Data) {
+		Data = ResetAllVelButtons(Data);
+		if (value == 60)
+			Data[BUTTON_VEL1] = true;
+		if (value == 60*2)
+			Data[BUTTON_VEL2] = true;
+		if (value == 60*4)
+			Data[BUTTON_VEL4] = true;
+		if (value == 60*8)
+			Data[BUTTON_VEL8] = true;
+
+		return Data;
 	}
 };

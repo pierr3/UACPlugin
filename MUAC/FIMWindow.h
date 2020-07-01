@@ -35,7 +35,11 @@ public:
 	void Move(CRect Area, bool isReleased) {
 		Released = isReleased;
 		TopLeftPosition = { Area.left, Area.top };
-	}
+	};
+
+	POINT GetTopLeftPosition() {
+		return TopLeftPosition;
+	};
 
 	CRect Render(CDC* dc, CRadarScreen* instance, POINT mousePt, CRadarTarget radarTarget, CFlightPlan flightPlan) {
 		int saveDc = dc->SaveDC();
@@ -176,7 +180,7 @@ public:
 				if (flightPlan.GetEntryCoordinationAltitude() == 0)
 					fl = "   ";
 
-				SecondLineString += point + time + fl.substr(0, 3);
+				SecondLineString += (point + time + fl.substr(0, 3));
 			}
 
 			SecondLineString += "¦";
