@@ -103,6 +103,8 @@ const string SAVE_HARD_FILTER_UPPER = "UACFilterHardUpper";
 
 const string SAVE_VEL_TIME = "UACVELTime";
 
+const string SAVE_VFR_FILTER = "UACVFRFilter";
+
 const enum AircraftStates {
 	NOT_CONCERNED, NOTIFIED, CONCERNED, TRANSFERRED, ASSUMED
 };

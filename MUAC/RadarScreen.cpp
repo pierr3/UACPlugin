@@ -354,11 +354,11 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 				CRect r = AcSymbols::DrawSquareAndTrail(&dc, AcState, this, radarTarget, ButtonsPressed[BUTTON_DOTS], 
 					IsSoft, StcaInstance->IsSTCA(radarTarget.GetCallsign()), Blink, isDetailed);
-				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
+				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, true, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 			}
 			else {
 				CRect r = AcSymbols::DrawPrimaryTrailAndDiamong(&dc, this, radarTarget, ButtonsPressed[BUTTON_DOTS]);
-				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
+				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, true, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 			}
 
 			if ((IsPrimary || !isCorrelated) && ButtonsPressed[BUTTON_VELOTH]) {
@@ -546,6 +546,12 @@ void RadarScreen::OnMoveScreenObject(int ObjectType, const char * sObjectId, POI
 		TagOffsets[sObjectId] = CustomTag;
 		if (!Released)
 			DetailedTag = sObjectId;
+	}
+
+	if (ObjectType == SCREEN_AC_SYMBOL) {
+		AcquiringSepTool = sObjectId;
+		if (Released)
+			AcquiringSepTool = "";
 	}
 
 	if (ObjectType == FIM_WINDOW) {
@@ -831,8 +837,10 @@ void RadarScreen::OnAsrContentToBeSaved() {
 
 	SaveDataToAsr(SAVE_HARD_FILTER_LOWER.c_str(), "UAC Filter settings", to_string(RadarFilters.Hard_Low).c_str());
 	SaveDataToAsr(SAVE_SOFT_FILTER_LOWER.c_str(), "UAC Filter settings", to_string(RadarFilters.Soft_Low).c_str());
-	SaveDataToAsr(SAVE_HARD_FILTER_UPPER.c_str(), "UAC Filter settings", to_string(RadarFilters.Hard_High).c_str());
+	SaveDataToAsr(SAVE_HARD_FILTER_UPPER.c_str(), "UAC Filter settings", to_string(RadarFilters.Hard_High).c_str()); 
 	SaveDataToAsr(SAVE_SOFT_FILTER_UPPER.c_str(), "UAC Filter settings", to_string(RadarFilters.Soft_High).c_str());
+
+	SaveDataToAsr(SAVE_VFR_FILTER.c_str(), "UAC Filter settings", ButtonsPressed[BUTTON_VFR_ON] ? "1" : "0");
 
 	SaveDataToAsr(SAVE_VEL_TIME.c_str(), "UAC Velocity Leader Length", to_string(MenuBar::GetVelValueButtonPressed(ButtonsPressed)).c_str());
 };
@@ -866,4 +874,8 @@ void RadarScreen::OnAsrContentLoaded(bool Loaded) {
 	// Loading vel value
 	if ((j_value = GetDataFromAsr(SAVE_VEL_TIME.c_str())) != NULL)
 		ButtonsPressed = MenuBar::LoadVelValueToButtons(atoi(j_value), ButtonsPressed);
+
+	// Loading VFR filter
+	if ((j_value = GetDataFromAsr(SAVE_VFR_FILTER.c_str())) != NULL)
+		ButtonsPressed[BUTTON_VFR_ON] = (j_value == "1");
 };
