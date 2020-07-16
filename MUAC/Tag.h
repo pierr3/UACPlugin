@@ -17,7 +17,7 @@ public:
 
 	// General things
 
-	const enum TagStates { NotConcerned, InSequence, Next, TransferredToMe, Assumed, TransferredFromMe, Redundant };
+	const enum TagStates { Uncorrelated, NotConcerned, InSequence, Next, TransferredToMe, Assumed, TransferredFromMe, Redundant };
 
 	// TagItems Definition
 	TagItem CallsignItem = TagItem::CreatePassive("Callsign", SCREEN_TAG_CALLSIGN, TagItem::TagColourTypes::Highlight);
@@ -58,6 +58,8 @@ public:
 
 	// Tag definitions
 	const vector<vector<TagItem>> MinimizedTag = { { SSRItem }, { AltitudeItem, TendencyItem } };
+
+	const vector<vector<TagItem>> UncorrelatedMagnifiedTag = { { CallsignItem }, { AltitudeItem, TendencyItem } };
 	
 	const vector<vector<TagItem>> StandardTag = { 
 		{ SSRItem, RouteMessageIndicator, FPMWarnings }, 
@@ -82,6 +84,9 @@ public:
 
 		map<string, string> TagReplacementMap = GenerateTag(radarScreen, isVButton, isModeAButton, RadarTarget, FlightPlan, mtcd);
 
+		if (State == Uncorrelated && !IsMagnified)
+			Definition = MinimizedTag;
+
 		if (State == TagStates::NotConcerned && IsSoft)
 			Definition = MinimizedTag;
 
@@ -98,8 +103,11 @@ public:
 			|| State == TagStates::Assumed || State == TagStates::TransferredFromMe || State == TagStates::Redundant)
 			Definition = StandardTag;
 
-		if (IsMagnified)
+		if (IsMagnified && State != Uncorrelated)
 			Definition = MagnifiedTag;
+
+		if (IsMagnified && State == Uncorrelated)
+			Definition = UncorrelatedMagnifiedTag;
 
 		TagState = State;
 
@@ -140,6 +148,10 @@ protected:
 		// Callsign
 		//
 		string callsign = RadarTarget.GetCallsign();
+		if (!FlightPlan.IsValid())
+			callsign = "A" + string(RadarTarget.GetPosition().GetSquawk());
+		if (!FlightPlan.IsValid() && RadarTarget.GetPosition().GetRadarFlags() >= RADAR_POSITION_SECONDARY_S)
+			callsign = "@" + string(RadarTarget.GetCallsign());
 
 		if (FlightPlan.IsValid() && FlightPlan.IsTextCommunication())
 			callsign += "/t";

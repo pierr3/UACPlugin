@@ -182,47 +182,25 @@ public:
 		vector<pair<POINT, POINT>> clippedLeaderLine;
 
 		// First we get the starting point next to the Target
-		POINT liangOrigin, liangEnd, firstPoint;
+		POINT liangOrigin, liangEnd, lastPointRecorded;
 		if (LiangBarsky(SymbolArea, AcPosition, Center, liangOrigin, liangEnd)) {
-			firstPoint = liangEnd;
+			// Point next to AC symbol
+			lastPointRecorded = liangEnd;
+
+			dc->SelectObject(leaderLinePen);
+
 			// Add any points that are in between
 			for (auto lineArea : LineAreas) {
 
 				liangOrigin = { 0, 0 }; liangEnd = { 0, 0 };
-				if (LiangBarsky(lineArea.second, firstPoint, Center, liangOrigin, liangEnd)) {
-					clippedLeaderLine.push_back(pair<POINT, POINT>(liangOrigin, liangEnd));
-					
-					dc->SelectObject(leaderLineRed);
-					//DrawCross(dc, liangOrigin, 10);
-					//DrawCross(dc, liangEnd, 10);
-					dc->SelectObject(leaderLineYellow);
-				}
-				else {
-					dc->SelectObject(leaderLineRed);
-				}
-
-				//dc->Rectangle(lineArea.second);
-
-			}
-
-			dc->SelectObject(leaderLinePen);
-			bool star = false;
-			int color = 0;
-
-			dc->MoveTo(firstPoint);
-			for (auto pt : clippedLeaderLine) {
-				dc->LineTo(pt.first);
-				dc->MoveTo(pt.second);
-				color++;
-				if (color >= 3) {
-					dc->SelectObject(leaderLinePen);
-					color = 0;
-				}
-				else {
-					dc->SelectObject(leaderLinePen);
+				if (LiangBarsky(lineArea.second, lastPointRecorded, Center, liangOrigin, liangEnd)) {
+					dc->MoveTo(lastPointRecorded);
+					dc->LineTo(liangOrigin);
+					lastPointRecorded = liangEnd;
 				}
 			}
-			dc->MoveTo(Center);
+
+			dc->MoveTo(Center);	
 		}
 
 		// We now draw the leaderline, only if even number

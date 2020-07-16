@@ -239,8 +239,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 					CRadarTarget rt = GetPlugIn()->RadarTargetSelect(DetailedTag.c_str());
 
-					if (rt.IsValid() && rt.GetPosition().GetRadarFlags() > RADAR_POSITION_PRIMARY) {
-						GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(DetailedTag.c_str()));
+					if (rt.IsValid() && rt.GetPosition().GetRadarFlags() > RADAR_POSITION_PRIMARY && rt.GetCorrelatedFlightPlan().IsValid()) {
+						GetPlugIn()->SetASELAircraft(rt.GetCorrelatedFlightPlan());
 					}
 					else if (rt.IsValid()) {
 						GetPlugIn()->SetASELAircraft(GetPlugIn()->RadarTargetSelect(DetailedTag.c_str()));
@@ -261,7 +261,6 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		radarTarget = GetPlugIn()->RadarTargetSelectNext(radarTarget))
 	{
 		CFlightPlan CorrelatedFlightPlan = radarTarget.GetCorrelatedFlightPlan();
-		CFlightPlan CheatFlightPlan = GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign());
 		bool isCorrelated = CorrelatedFlightPlan.IsValid();
 		int Altitude = radarTarget.GetPosition().GetFlightLevel();
 		POINT radarTargetPoint = ConvertCoordFromPositionToPixel(radarTarget.GetPosition().GetPosition());
@@ -322,11 +321,12 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				AcState = Tag::TagStates::Redundant;
 		}
 		else{ 
-			if (CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED || 
+			/*if (CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED || 
 				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED ||
 				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_ASSUMED ||
 				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_REDUNDANT)
-				AcState = Tag::TagStates::Redundant;
+				AcState = Tag::TagStates::Redundant;*/
+			AcState = Tag::TagStates::Uncorrelated;
 		}
 
 		if (IsPrimary) {
@@ -351,7 +351,6 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 		if (Phase == REFRESH_PHASE_BEFORE_TAGS) {
 			if (!IsPrimary) {
-
 				CRect r = AcSymbols::DrawSquareAndTrail(&dc, AcState, this, radarTarget, ButtonsPressed[BUTTON_DOTS], 
 					IsSoft, StcaInstance->IsSTCA(radarTarget.GetCallsign()), Blink, isDetailed);
 				AddScreenObject(SCREEN_AC_SYMBOL, radarTarget.GetCallsign(), r, true, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
@@ -380,7 +379,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				continue;
 
 			Tag t = Tag(AcState, isDetailed, IsSoft, ButtonsPressed[BUTTON_MODE_A], 
-				ButtonsPressed[BUTTON_LABEL_V], this, MtcdInstance, radarTarget, CheatFlightPlan);
+				ButtonsPressed[BUTTON_LABEL_V], this, MtcdInstance, radarTarget, radarTarget.GetCorrelatedFlightPlan());
 
 			// Getting the tag center
 			if (TagOffsets.find(radarTarget.GetCallsign()) == TagOffsets.end())
@@ -438,8 +437,11 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		// Menubar
 		MenuBar::DrawMenuBar(&dc, this, { RadarArea.left, RadarArea.top + 1 }, MousePoint, MenuButtons, ButtonsPressed);
 
+		CRadarTarget fimRt = GetPlugIn()->RadarTargetSelectASEL();
+		CFlightPlan fimFp = fimRt.GetCorrelatedFlightPlan();
+
 		// FIM Window
-		CRect r = FIMWindow->Render(&dc, this, MousePoint, GetPlugIn()->RadarTargetSelectASEL(), GetPlugIn()->FlightPlanSelectASEL());
+		CRect r = FIMWindow->Render(&dc, this, MousePoint, fimRt, fimFp);
 		AddScreenObject(FIM_WINDOW, "", r, true, "");
 
 		r = MTCDWindow->Render(&dc, this, MousePoint, MtcdInstance, SepToolPairs);
@@ -639,10 +641,10 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		CRadarTarget radarTarget = GetPlugIn()->RadarTargetSelect(sObjectId);
 
 		bool IsPrimary = !radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI();
-		if (IsPrimary)
+		if (IsPrimary || !radarTarget.GetCorrelatedFlightPlan().IsValid())
 			GetPlugIn()->SetASELAircraft(radarTarget);
 		else
-			GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+			GetPlugIn()->SetASELAircraft(radarTarget.GetCorrelatedFlightPlan());
 		DetailedTag = sObjectId;
 		if (AcquiringSepTool != "" && AcquiringSepTool != sObjectId) {
 			SepToolPairs.insert(pair<string, string>(AcquiringSepTool, sObjectId));
