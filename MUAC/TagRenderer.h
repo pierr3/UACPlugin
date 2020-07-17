@@ -88,6 +88,7 @@ public:
 				}
 
 				bool needBacktick = false;
+				bool needYellowUnderline = false;
 				if (TagItem.Text.compare(0, PREFIX_BACKSTEP.length(), PREFIX_BACKSTEP) == 0) {
 					needBacktick = true;
 					TagItem.Text.erase(0, PREFIX_BACKSTEP.length());
@@ -101,6 +102,21 @@ public:
 				if (TagItem.Text.compare(0, PREFIX_ORANGE_COLOR.length(), PREFIX_ORANGE_COLOR) == 0) {
 					dc->SetTextColor(Colours::OrangeTool.ToCOLORREF());
 					TagItem.Text.erase(0, PREFIX_ORANGE_COLOR.length());
+				}
+
+				if (TagItem.Text.compare(0, PREFIX_GREY_COLOR.length(), PREFIX_GREY_COLOR) == 0) {
+					dc->SetTextColor(Colours::AircraftDarkGrey.ToCOLORREF());
+					TagItem.Text.erase(0, PREFIX_GREY_COLOR.length());
+				}
+
+				if (TagItem.Text.compare(0, PREFIX_BLUE_COLOR.length(), PREFIX_BLUE_COLOR) == 0) {
+					dc->SetTextColor(Colours::AircraftBlue.ToCOLORREF());
+					TagItem.Text.erase(0, PREFIX_BLUE_COLOR.length());
+				}
+
+				if (TagItem.Text.compare(0, PREFIX_YELLOW_UNDERLINE.length(), PREFIX_YELLOW_UNDERLINE) == 0) {
+					needYellowUnderline = true;
+					TagItem.Text.erase(0, PREFIX_YELLOW_UNDERLINE.length());
 				}
 					
 				MeasureRect = dc->GetTextExtent(TagItem.Text.c_str());
@@ -119,6 +135,14 @@ public:
 					dc->SelectObject(&YellowPen);
 					dc->SelectStockObject(NULL_BRUSH);
 					dc->Rectangle(TextBox);
+				}
+				
+				if (needYellowUnderline) {
+					CPen YellowPen(PS_SOLID, 1, Colours::YellowWarning.ToCOLORREF());
+					dc->SelectObject(&YellowPen);
+					dc->SelectStockObject(NULL_BRUSH);
+					dc->MoveTo(TextBox.left, TextBox.bottom);
+					dc->LineTo(TextBox.right, TextBox.bottom);
 				}
 
 				// if Detailed, then we store the area for click

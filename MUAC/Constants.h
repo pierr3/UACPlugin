@@ -13,7 +13,10 @@ const string PLUGIN_COPY = "GPL v3";
 #define MUAC_RADAR_SCREEN_VIEW "MUAC Radar Screen"
 
 const string PREFIX_PURPLE_COLOR = "_/";
+const string PREFIX_BLUE_COLOR = "_}";
 const string PREFIX_ORANGE_COLOR = "_-";
+const string PREFIX_GREY_COLOR = "_]";
+const string PREFIX_YELLOW_UNDERLINE = "_[";
 const string PREFIX_BACKSTEP = "_'";
 const string PREFIX_FORESTEP = "_|";
 
@@ -24,7 +27,7 @@ const int SCREEN_SEP_TOOL = 20;
 
 const int DRAWING_AC_SQUARE_SYMBOL_SIZE = 4;
 const int DRAWING_AC_SQUARE_TRAIL_SIZE = 1;
-const int DRAWING_AC_PRIMARY_DIAMOND_SIZE = 3;
+const int DRAWING_AC_PRIMARY_DIAMOND_SIZE = 4;
 
 const int DRAWING_PADDING = 3;
 

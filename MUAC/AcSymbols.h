@@ -69,14 +69,16 @@ public:
 
 		int Size = DRAWING_AC_SQUARE_SYMBOL_SIZE;
 
-		if (isDetailed)
+		// Bigger target if ident
+		if (isDetailed || radarTarget.GetPosition().GetTransponderI())
 			Size += (int)(Size*0.25);
 
 		CRect Area(radarTargetPoint.x - Size, radarTargetPoint.y - Size,
 			radarTargetPoint.x + Size, radarTargetPoint.y + Size);
 		Area.NormalizeRect();
 
-		if (isStca) {
+		// if STCA or Ident, filled in target
+		if (isStca || radarTarget.GetPosition().GetTransponderI()) {
 			CBrush brush(SymbolColor);
 			dc->FillRect(Area, &brush);
 		}
@@ -84,7 +86,6 @@ public:
 			dc->Rectangle(Area);
 		}
 		
-
 		// Pixel in center
 		//dc->SetPixel(Area.CenterPoint(), SymbolColor);
 

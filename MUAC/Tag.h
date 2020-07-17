@@ -59,7 +59,7 @@ public:
 	// Tag definitions
 	const vector<vector<TagItem>> MinimizedTag = { { SSRItem }, { AltitudeItem, TendencyItem } };
 
-	const vector<vector<TagItem>> UncorrelatedMagnifiedTag = { { CallsignItem }, { AltitudeItem, TendencyItem } };
+	const vector<vector<TagItem>> UncorrelatedMagnifiedTag = { { CallsignItem }, { AltitudeItem, TendencyItem }, { ReportedGS, VerticalRate } };
 	
 	const vector<vector<TagItem>> StandardTag = { 
 		{ SSRItem, RouteMessageIndicator, FPMWarnings }, 
@@ -147,11 +147,14 @@ protected:
 		//
 		// Callsign
 		//
-		string callsign = RadarTarget.GetCallsign();
+		string callsign = RadarTarget.GetSystemID();
 		if (!FlightPlan.IsValid())
 			callsign = "A" + string(RadarTarget.GetPosition().GetSquawk());
 		if (!FlightPlan.IsValid() && RadarTarget.GetPosition().GetRadarFlags() >= RADAR_POSITION_SECONDARY_S)
-			callsign = "@" + string(RadarTarget.GetCallsign());
+			callsign = callsign + " " + string(RadarTarget.GetCallsign());
+
+		if (FlightPlan.IsValid())
+			callsign = FlightPlan.GetCallsign();
 
 		if (FlightPlan.IsValid() && FlightPlan.IsTextCommunication())
 			callsign += "/t";
@@ -183,6 +186,11 @@ protected:
 		
 		if (RadarTarget.GetPosition().GetFlightLevel() <= radarScreen->GetPlugIn()->GetTransitionAltitude())
 			alt = "A" + to_string((int)RoundTo(RadarTarget.GetPosition().GetPressureAltitude(), 100) / 100);
+
+		if (FlightPlan.IsValid()) {
+			if (!FlightPlan.GetFlightPlanData().IsRvsm())
+				alt = PREFIX_YELLOW_UNDERLINE + alt;
+		}
 
 		TagReplacementMap.insert(pair<string, string>("Altitude", alt));
 		
@@ -405,6 +413,10 @@ protected:
 					}
 					else {
 						assignedSpeed = "S" + to_string(FlightPlan.GetControllerAssignedData().GetAssignedSpeed());
+						if ((FlightPlan.GetControllerAssignedData().GetAssignedSpeed() % 10) == 1)
+							assignedSpeed = "+" + assignedSpeed;
+						else if ((FlightPlan.GetControllerAssignedData().GetAssignedSpeed() % 10) == 9)
+							assignedSpeed = "-" + assignedSpeed;
 					}
 				}
 			}
@@ -419,19 +431,27 @@ protected:
 			string SectorId = "   ";
 			if (FlightPlan.GetTrackingControllerIsMe()) {
 				string controllerCallsign = FlightPlan.GetCoordinatedNextController();
-				if (controllerCallsign.length()  > 0) {
+				if (controllerCallsign.length() > 0) {
 					SectorId = radarScreen->GetPlugIn()->ControllerSelect(controllerCallsign.c_str()).GetPositionId();
+
+					if (FlightPlan.GetCoordinatedNextControllerState() == COORDINATION_STATE_REQUESTED_BY_ME)
+						SectorId = PREFIX_BLUE_COLOR + SectorId;
+
+					if (FlightPlan.GetCoordinatedNextControllerState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						SectorId = PREFIX_ORANGE_COLOR + SectorId;
 				}
 			}
 			else {
 				string controllerCallsign = FlightPlan.GetTrackingControllerId();
-				if (controllerCallsign.length() > 0) {
+				if (controllerCallsign.length() > 0)
 					SectorId = controllerCallsign;
-				}
 			}
 
 			TagReplacementMap.insert(pair<string, string>("Sector", SectorId));
 
+			//
+			// Horizontal clearance
+			//
 			string Horizontal = "  ";
 			if (IsMagnified) {
 				if (FlightPlan.GetControllerAssignedData().GetAssignedHeading() != 0) {
@@ -439,6 +459,14 @@ protected:
 				}
 				else if (strlen(FlightPlan.GetControllerAssignedData().GetDirectToPointName()) != 0) {
 					Horizontal = FlightPlan.GetControllerAssignedData().GetDirectToPointName();
+				}
+				else {
+					// Display next point in grey
+
+					CFlightPlanExtractedRoute exR = FlightPlan.GetExtractedRoute();
+					int index = exR.GetPointsCalculatedIndex();
+					if (index > 0 && index != exR.GetPointsNumber())
+						Horizontal = PREFIX_GREY_COLOR + exR.GetPointName(index);
 				}
 			}
 			else {
@@ -460,9 +488,11 @@ protected:
 					XFL = padWithZeros(3, FlightPlan.GetExitCoordinationAltitude() / 100);
 					XFL = XFL.substr(0, 2);
 
-					if (FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME ||
-						FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
-						XFL = PREFIX_PURPLE_COLOR + XFL;
+					if (FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME)
+						XFL = PREFIX_BLUE_COLOR + XFL;
+
+					if (FlightPlan.GetExitCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						XFL = PREFIX_ORANGE_COLOR + XFL;
 				}
 					
 			}
@@ -471,9 +501,11 @@ protected:
 					XFL = padWithZeros(3, FlightPlan.GetEntryCoordinationAltitude() / 100);
 					XFL = XFL.substr(0, 2);
 
-					if (FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME ||
-						FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
-						XFL = PREFIX_PURPLE_COLOR + XFL;
+					if (FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_ME)
+						XFL = PREFIX_BLUE_COLOR + XFL;
+
+					if (FlightPlan.GetEntryCoordinationAltitudeState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						XFL = PREFIX_ORANGE_COLOR + XFL;
 				}
 					
 			}
@@ -492,18 +524,22 @@ protected:
 				if (strlen(FlightPlan.GetExitCoordinationPointName()) != 0) {
 					COP = FlightPlan.GetExitCoordinationPointName();
 
-					if (FlightPlan.GetExitCoordinationNameState() == COORDINATION_STATE_REQUESTED_BY_ME ||
-						FlightPlan.GetExitCoordinationNameState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
-						COP = PREFIX_PURPLE_COLOR + COP;
+					if (FlightPlan.GetExitCoordinationNameState() == COORDINATION_STATE_REQUESTED_BY_ME)
+						COP = PREFIX_BLUE_COLOR + COP;
+
+					if (FlightPlan.GetExitCoordinationNameState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						COP = PREFIX_ORANGE_COLOR + COP;
 				}
 			}
 			else {
 				if (strlen(FlightPlan.GetEntryCoordinationPointName()) != 0) {
 					COP = FlightPlan.GetEntryCoordinationPointName();
 
-					if (FlightPlan.GetEntryCoordinationPointState() == COORDINATION_STATE_REQUESTED_BY_ME ||
-						FlightPlan.GetEntryCoordinationPointState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
-						COP = PREFIX_PURPLE_COLOR + COP;
+					if (FlightPlan.GetEntryCoordinationPointState() == COORDINATION_STATE_REQUESTED_BY_ME)
+						COP = PREFIX_BLUE_COLOR + COP;
+
+					if (FlightPlan.GetEntryCoordinationPointState() == COORDINATION_STATE_REQUESTED_BY_OTHER)
+						COP = PREFIX_ORANGE_COLOR + COP;
 				}
 			}
 

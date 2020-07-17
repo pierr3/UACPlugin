@@ -243,7 +243,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 						GetPlugIn()->SetASELAircraft(rt.GetCorrelatedFlightPlan());
 					}
 					else if (rt.IsValid()) {
-						GetPlugIn()->SetASELAircraft(GetPlugIn()->RadarTargetSelect(DetailedTag.c_str()));
+						GetPlugIn()->SetASELAircraft(rt);
 					}
 				}
 			}
@@ -321,11 +321,6 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				AcState = Tag::TagStates::Redundant;
 		}
 		else{ 
-			/*if (CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED || 
-				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED ||
-				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_ASSUMED ||
-				CheatFlightPlan.GetState() == FLIGHT_PLAN_STATE_REDUNDANT)
-				AcState = Tag::TagStates::Redundant;*/
 			AcState = Tag::TagStates::Uncorrelated;
 		}
 
@@ -413,7 +408,10 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			// If detailed we add the screen objects 
 			if (isDetailed) {
 				for (auto kv : DetailedTagData) {
-					AddScreenObject(kv.first, radarTarget.GetCallsign(), kv.second, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
+					const char* callsignToCallActions = radarTarget.GetCallsign();
+					if (isCorrelated)
+						callsignToCallActions = CorrelatedFlightPlan.GetCallsign();
+					AddScreenObject(kv.first, callsignToCallActions, kv.second, false, GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign()).GetPilotName());
 				}
 			}
 
