@@ -49,6 +49,9 @@ private:
 	map<int, string> MenuButtons;
 	map<int, bool> ButtonsPressed;
 	multimap<string, string> SepToolPairs;
+	map<int, pair<CPosition, CPosition>> VariableQDMs;
+	int CurrentQDMId = 1;
+	POINT VariableQDMAcquisition = { 0, 0 };
 	map<string, CRect> TagAreas;
 	map<string, CRect> SoftTagAreas;
 	map <string, clock_t> RecentlyAutoMovedTags;

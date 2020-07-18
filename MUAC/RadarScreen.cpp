@@ -104,14 +104,14 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		// Starting with tools
 		//
 
-		// VERA
+		CPen QDMToolPen(PS_SOLID, 1, Colours::BlueTool.ToCOLORREF());
+		CPen SepToolColorPen(PS_SOLID, 1, Colours::OrangeTool.ToCOLORREF());
 
-		// Sep tools
-
+		//
+		// Active VERA
+		// 
 
 		if (AcquiringSepTool != "") {
-
-			CPen SepToolColorPen(PS_SOLID, 1, Colours::OrangeTool.ToCOLORREF());
 			dc.SelectObject(&SepToolColorPen);
 			dc.SetTextColor(Colours::OrangeTool.ToCOLORREF());
 
@@ -141,11 +141,12 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			RequestRefresh();
 		}
 
+		//
 		// Fixed QDM
+		//
 
 		if (FixedQDMTool != "") {
-			CPen SepToolColorPen(PS_SOLID, 1, Colours::BlueTool.ToCOLORREF());
-			dc.SelectObject(&SepToolColorPen);
+			dc.SelectObject(&QDMToolPen);
 			dc.SetTextColor(Colours::BlueTool.ToCOLORREF());
 
 			CPosition ActivePosition = GetPlugIn()->RadarTargetSelect(FixedQDMTool.c_str()).GetPosition().GetPosition();
@@ -169,10 +170,48 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			RequestRefresh();
 		}
 
-		// 
-		// Other tools
 		//
-		CPen SepToolColorPen(PS_SOLID, 1, Colours::OrangeTool.ToCOLORREF());
+		// Variable QDM
+		//
+
+		if (ButtonsPressed[BUTTON_QDM]) {
+			dc.SelectObject(&QDMToolPen);
+			dc.SetTextColor(Colours::BlueTool.ToCOLORREF());
+
+			//
+			// Add clickable background area
+			//
+			CRect R(GetRadarArea());
+			R.top += 50;
+			R.bottom = GetChatArea().top;
+
+			R.NormalizeRect();
+			AddScreenObject(SCREEN_BACKGROUND, "", R, false, "");
+
+			if (VariableQDMAcquisition.x != 0 && VariableQDMAcquisition.y != 0) {
+				CPosition SelectedFirstPosition = ConvertCoordFromPixelToPosition(VariableQDMAcquisition);
+
+				dc.MoveTo(VariableQDMAcquisition);
+				dc.LineTo(MousePoint);
+
+				string headingText = padWithZeros(3, (int)SelectedFirstPosition.DirectionTo(ConvertCoordFromPixelToPosition(MousePoint)));
+
+				string distanceText = to_string(SelectedFirstPosition.DistanceTo(ConvertCoordFromPixelToPosition(MousePoint)));
+				size_t decimal_pos = distanceText.find(".");
+				distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
+
+				POINT TextPositon = { MousePoint.x + 15, MousePoint.y };
+				dc.TextOutA(TextPositon.x, TextPositon.y, string(headingText + "/" + distanceText).c_str());
+			}
+
+			RequestRefresh();
+		}
+
+
+		// 
+		// Existing VERA
+		//
+		
 		dc.SelectObject(&SepToolColorPen);
 		dc.SetTextColor(Colours::OrangeTool.ToCOLORREF());
 
@@ -261,6 +300,41 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				AddScreenObject(SCREEN_SEP_TOOL, string(kv.first + "," + kv.second).c_str(), AreaRemoveTool, false, "");
 			}
 		}
+
+		// 
+		// Existing VariableQDM
+		//
+		
+		dc.SelectObject(&QDMToolPen);
+		dc.SetTextColor(Colours::BlueTool.ToCOLORREF());
+
+		for (auto kv : VariableQDMs) {
+			POINT FirstPositionPix = ConvertCoordFromPositionToPixel(kv.second.first);
+			POINT SecondPositionPix = ConvertCoordFromPositionToPixel(kv.second.second);
+
+			dc.MoveTo(FirstPositionPix);
+			dc.LineTo(SecondPositionPix);
+
+			string headingText = padWithZeros(3, (int)kv.second.first.DirectionTo(kv.second.second));
+
+			string distanceText = to_string(kv.second.first.DistanceTo(kv.second.second));
+			size_t decimal_pos = distanceText.find(".");
+			distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
+
+			POINT TextPositon = { SecondPositionPix.x + 15, SecondPositionPix.y };
+			dc.TextOutA(TextPositon.x, TextPositon.y, string(headingText + "/" + distanceText).c_str());
+
+			CSize Measure = dc.GetTextExtent(distanceText.c_str());
+			CRect AreaRemoveTool = { TextPositon.x, TextPositon.y, TextPositon.x + Measure.cx, TextPositon.y + Measure.cy };
+
+			AddScreenObject(SCREEN_QDM_TOOL, to_string(kv.first).c_str(), AreaRemoveTool, false, "");
+		}
+
+
+		//
+		// Existing variable QDMs
+		//
+
 
 		dc.RestoreDC(saveTool);
 
@@ -654,9 +728,6 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 			FillInAltitudeList(GetPlugIn(), ObjectType, Current);
 		}
 
-		if (ObjectType == BUTTON_QDM)
-			ButtonsPressed[BUTTON_QDM] = false;
-
 		if (ObjectType == BUTTON_TOPDOWN) {
 			ButtonsPressed[BUTTON_LABEL_V] = true;
 			ButtonsPressed[BUTTON_VFR_ON] = true;
@@ -701,6 +772,31 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 
 			return;
 		}
+	}
+
+	if (ObjectType == SCREEN_BACKGROUND) {
+		if (Button == BUTTON_RIGHT) {
+			ButtonsPressed[BUTTON_QDM] = false; // Disable QDM
+			VariableQDMAcquisition = { 0, 0 };
+		}
+		else if (VariableQDMAcquisition.x == 0 && VariableQDMAcquisition.y == 0)
+			VariableQDMAcquisition = Pt; // Add first selected QDM Point
+		else {
+
+			// Add QDM to list
+			CurrentQDMId++;
+			pair<CPosition, CPosition> Positions = pair<CPosition, CPosition>(ConvertCoordFromPixelToPosition(VariableQDMAcquisition), ConvertCoordFromPixelToPosition(Pt));
+			VariableQDMs.insert(pair<int, pair<CPosition, CPosition>>(CurrentQDMId, Positions));
+			VariableQDMAcquisition = { 0, 0 };
+			ButtonsPressed[BUTTON_QDM] = false;
+		}
+			
+	}
+
+	if (ObjectType == SCREEN_QDM_TOOL) {
+		map<int, pair<CPosition, CPosition>>::iterator it = VariableQDMs.find(atoi(sObjectId));
+		if (it != VariableQDMs.end())
+			VariableQDMs.erase(it);
 	}
 
 	if (ObjectType == SCREEN_AC_SYMBOL) {

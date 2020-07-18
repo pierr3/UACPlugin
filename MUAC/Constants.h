@@ -24,6 +24,9 @@ const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;
 
 const int SCREEN_SEP_TOOL = 20;
+const int SCREEN_QDM_TOOL = 21;
+
+const int SCREEN_BACKGROUND = 31;
 
 const int DRAWING_AC_SQUARE_SYMBOL_SIZE = 4;
 const int DRAWING_AC_SQUARE_TRAIL_SIZE = 1;
