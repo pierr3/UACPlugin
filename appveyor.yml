@@ -46,7 +46,7 @@ install:
 configuration: Release
 
 build_script:
-  - ps: (Get-Content C:\projects\uacplugin\MUAC\Constants.h).replace(@appveyor_build, $Env:appveyor_build_version) | Set-Content C:\projects\uacplugin\MUAC\Constants.h
+  - ps: (Get-Content C:\projects\uacplugin\MUAC\Constants.h).replace('@appveyor_build', $Env:appveyor_build_version) | Set-Content C:\projects\uacplugin\MUAC\Constants.h
   - cmd: msbuild "C:\projects\uacplugin\MUAC.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 after_build:
