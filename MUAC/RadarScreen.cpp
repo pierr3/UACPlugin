@@ -482,6 +482,16 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			else if (!IsPrimary && isCorrelated) {
 				AcSymbols::DrawSpeedVector(&dc, AcState, this, radarTarget, IsPrimary, IsSoft, MenuBar::GetVelValueButtonPressed(ButtonsPressed));
 			}
+
+
+			// If final approach help is toggled, display the vectors
+			if (!IsPrimary && isCorrelated && ButtonsPressed[BUTTON_FIN]) {
+				if (CorrelatedFlightPlan.GetControllerAssignedData().GetClearedAltitude() == 1) {
+					bool existsInList = find(ExtendedAppVector.begin(), ExtendedAppVector.end(), string(radarTarget.GetCallsign())) != ExtendedAppVector.end();
+					CRect r = AcSymbols::DrawApproachVector(&dc, this, radarTarget, existsInList ? 5 : 3);
+					AddScreenObject(SCREEN_AC_APP_ARROW, radarTarget.GetCallsign(), r, true, "");
+				}
+			}
 		}
 
 #pragma endregion
@@ -703,7 +713,7 @@ void RadarScreen::OnOverScreenObject(int ObjectType, const char * sObjectId, POI
 void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
 {
 	// Handle button menu click
-	if (ObjectType >= BUTTON_HIDEMENU && ObjectType <= BUTTON_DOTS && Button == BUTTON_LEFT) {
+	if (ObjectType >= BUTTON_HIDEMENU && ObjectType <= BUTTON_FIN && Button == BUTTON_LEFT) {
 		if (ObjectType >= BUTTON_VEL1 && ObjectType <= BUTTON_VEL8 && !ButtonsPressed[ObjectType])
 			ButtonsPressed = MenuBar::ResetAllVelButtons(ButtonsPressed);
 
@@ -791,6 +801,13 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 			ButtonsPressed[BUTTON_QDM] = false;
 		}
 			
+	}
+
+	if (ObjectType == SCREEN_AC_APP_ARROW) {
+		if (find(ExtendedAppVector.begin(), ExtendedAppVector.end(), string(sObjectId)) != ExtendedAppVector.end())
+			ExtendedAppVector.erase(find(ExtendedAppVector.begin(), ExtendedAppVector.end(), sObjectId));
+		else
+			ExtendedAppVector.push_back(string(sObjectId));
 	}
 
 	if (ObjectType == SCREEN_QDM_TOOL) {

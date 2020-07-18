@@ -42,6 +42,7 @@ public:
 		data[BUTTON_VEL4] = "4";
 		data[BUTTON_VEL8] = "8";
 		data[BUTTON_DOTS] = "DOTS";
+		data[BUTTON_FIN] = "FIN";
 		return data;
 	}
 

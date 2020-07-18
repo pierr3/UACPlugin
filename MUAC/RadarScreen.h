@@ -56,6 +56,7 @@ private:
 	map<string, CRect> SoftTagAreas;
 	map <string, clock_t> RecentlyAutoMovedTags;
 	vector<string> RouteBeingShown;
+	vector<string> ExtendedAppVector;
 	POINT MousePoint = { 0, 0 };
 	CSTCA * StcaInstance;
 	CMTCD * MtcdInstance;

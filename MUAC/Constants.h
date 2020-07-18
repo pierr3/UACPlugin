@@ -22,6 +22,7 @@ const string PREFIX_FORESTEP = "_|";
 
 const int SCREEN_TAG = 0;
 const int SCREEN_AC_SYMBOL = 1;
+const int SCREEN_AC_APP_ARROW = 5;
 
 const int SCREEN_SEP_TOOL = 20;
 const int SCREEN_QDM_TOOL = 21;
@@ -68,6 +69,8 @@ const int BUTTON_VEL4 = 430;
 const int BUTTON_VEL8 = 431;
 
 const int BUTTON_DOTS = 432;
+
+const int BUTTON_FIN = 433;
 
 
 const int FIM_WINDOW = 501;

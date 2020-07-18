@@ -179,4 +179,35 @@ public:
 		dc->RestoreDC(save);
 	}
 	
+	static CRect DrawApproachVector(CDC* dc, CRadarScreen* radar, CRadarTarget radarTarget, double distance = 3) {
+		int save = dc->SaveDC();
+
+		double reverseHeading = (int)(radarTarget.GetTrackHeading() + 180) % 360;
+		CPosition middlePointArrow = Extrapolate(radarTarget.GetPosition().GetPosition(), reverseHeading, distance * 1852);
+
+		double topArrowHeading = (int)(reverseHeading - 40) % 360;
+		CPosition topPointArrow = Extrapolate(middlePointArrow, topArrowHeading, 0.6 * 1852);
+		double bottomArrowHeading = (int)(reverseHeading + 40) % 360;
+		CPosition bottomPointArrow = Extrapolate(middlePointArrow, bottomArrowHeading, 0.6 * 1852);
+		
+		CPen ArrowPen(PS_SOLID, 1, Colours::PurpleDisplay.ToCOLORREF());
+		dc->SelectObject(&ArrowPen);
+
+		POINT middleArrowPointPx = radar->ConvertCoordFromPositionToPixel(middlePointArrow);
+
+		POINT topArrowPointPx = radar->ConvertCoordFromPositionToPixel(topPointArrow);
+		dc->MoveTo(middleArrowPointPx);
+		dc->LineTo(topArrowPointPx);
+
+		POINT bottomArrowPointPx = radar->ConvertCoordFromPositionToPixel(bottomPointArrow);
+		dc->MoveTo(middleArrowPointPx);
+		dc->LineTo(bottomArrowPointPx);
+
+		dc->RestoreDC(save);
+
+		CRect r(topArrowPointPx.x, topArrowPointPx.y, middleArrowPointPx.x, bottomArrowPointPx.y);
+		r.NormalizeRect();
+		return r;
+
+	};
 };
