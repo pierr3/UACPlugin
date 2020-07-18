@@ -4,16 +4,16 @@
 	<img alt="UAC PlugIn header" src="https://pierr3.github.io/UACPlugin/img/header.png"/>
 </p>
 
-Features:
-
- * Designed for en-route control
+This plugin simulates an ATC HMI resembling systems using by large European Air Traffic Control providers, specially en route. The plugin supports an en route mode and an approach mode, allowing for full topdown control (excluding ground control). It features a number of advanced systems, while still being light and usable:
+ * En route control & approach control mode
  * Custom drawn tags, with custom realistic behaviour
- * Realistic filtering
- * Precise separation tool, STCA, MTCD (coming) and probe (coming) 
- * Anti-overlap algorithm based on weighted grid system
- * Supports maximum and minimum speeds, automatic heading offset (coming)
- * Integrated CPDLC (planned, soon™)
+ * Realistic filtering (by levels, VFRs, Primary)
+ * Precise separation tool (min distance), custom STCA (no alert sound), cutom MTCD
+ * Anti-overlap algorithm based on weighted grid system, meaning tags automatically move to not overlap
+ * Full support for coordination mechanisms from EuroScope
+ * Display of max and minimum speeds
+ * Display of mode S reported heading
  
- Find the nightly DLL build here:
+ Download the most recent development (nightly) build here:
  
  <https://ci.appveyor.com/api/projects/pierr3/UACPlugin/artifacts/UAC-nightly.zip>
