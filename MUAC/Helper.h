@@ -91,6 +91,63 @@ static bool file_exist(string fileName)
 	return infile.good();
 }
 
+static bool clipT(double num, double denom, POINT c) {
+	double tE = c.x, tL = c.y;
+	if (abs(denom) < 1e-6) return num < 0;
+	double t = num / denom;
+
+	if (denom > 0) {
+		if (t > tL) return 0;
+		if (t > tE) c.x = t;
+	}
+	else {
+		if (t < tE) return 0;
+		if (t < tL) c.y = t;
+	}
+	return true;
+}
+
+static bool LiangBarsky2(RECT box, POINT a, POINT b, POINT &da, POINT &db) {
+	double x1 = a.x, y1 = -a.y;
+	double x2 = b.x, y2 = -b.y;
+	double dx = x2 - x1;
+	double dy = y2 - y1;
+
+	da = a;
+	db = b;
+
+	if (
+		abs(dx) < 1e-6 &&
+		abs(dy) < 1e-6 &&
+		x1 >= box.left &&
+		x1 <= box.right &&
+		y1 >= box.bottom &&
+		y1 <= box.top
+		) {
+		return true;
+	}
+
+	POINT c = { 0, 1 };
+	if (
+		clipT(box.left - x1, dx, c) &&
+		clipT(x1 - box.right, -dx, c) &&
+		clipT(box.bottom - y1, dy, c) &&
+		clipT(y1 - box.top, -dy, c)
+		) {
+		double tE = c.x, tL = c.y;
+		if (tL < 1) {
+			db.x = x1 + tL * dx;
+			db.y = y1 + tL * dy;
+		}
+		if (tE > 0) {
+			da.x += tE * dx;
+			da.y += tE * dy;
+		}
+		return true;
+	}
+	return false;
+}
+
 // Liang-Barsky function by Daniel White @ http://www.skytopia.com/project/articles/compsci/clipping.html
 // This function inputs 8 numbers, and outputs 4 new numbers (plus a boolean value to say whether the clipped line is drawn at all).
 //

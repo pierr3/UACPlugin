@@ -204,9 +204,6 @@ public:
 
 		dc->SelectStockObject(NULL_BRUSH);
 
-		// we use a vector to store the points we're gonna draw
-		vector<pair<POINT, POINT>> clippedLeaderLine;
-
 		// First we get the starting point next to the Target
 		POINT liangOrigin, liangEnd, lastPointRecorded;
 		if (LiangBarsky(SymbolArea, AcPosition, Center, liangOrigin, liangEnd)) {
