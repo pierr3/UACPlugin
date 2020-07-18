@@ -41,7 +41,10 @@ public:
 		return TopLeftPosition;
 	};
 
-	CRect Render(CDC* dc, CRadarScreen* instance, POINT mousePt, CRadarTarget radarTarget, CFlightPlan flightPlan) {
+	CRect Render(CDC* dc, CRadarScreen* instance, POINT mousePt, CRadarTarget radarTarget, CFlightPlan flightPlan, bool displayed) {
+		if (!displayed)
+			return { 0,0,0,0 };
+
 		int saveDc = dc->SaveDC();
 
 		FontManager::SelectStandardFont(dc);
@@ -73,6 +76,8 @@ public:
 		
 		dc->SelectStockObject(NULL_BRUSH);
 		dc->Rectangle(WinOutline);
+
+		instance->AddScreenObject(FIM_WINDOW, "", Window, true, "");
 
 		if (!Released)
 			return Window;
@@ -125,9 +130,9 @@ public:
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "CPDLC", mousePt, false);
 		LeftButtonOffset += ButtonRect.Size().cx;
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "MSG", mousePt, false);
-		instance->AddScreenObject(FIM_SCRATCHPAD, flightPlan.GetCallsign(), ButtonRect, false, "");
 		LeftButtonOffset += ButtonRect.Size().cx;
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "X", mousePt, false);
+		instance->AddScreenObject(FIM_CLOSE, "", ButtonRect, false, "Close FIM Window");
 
 		dc->SetTextAlign(TA_LEFT | TA_BASELINE);
 
@@ -207,7 +212,7 @@ public:
 
 		if (flightPlan.IsValid()) {
 			// Scratchpad
-			CRect ScratchPadRect = { SecondLine.left + 3, SecondLine.top - 1,
+			CRect ScratchPadRect = { SecondLine.left + 3, SecondLine.top,
 				(SecondLine.right - 3) - SecondLineMeasure.cx, Window.bottom - 3 };
 
 			string scratchPadString = "";
@@ -219,6 +224,13 @@ public:
 			dc->DrawText(scratchPadString.c_str(), ScratchPadRect, DT_WORDBREAK);
 
 			instance->AddScreenObject(FIM_SCRATCHPAD, flightPlan.GetCallsign(), ScratchPadRect, false, "");
+
+			CPen YellowPen(PS_SOLID, 1, Colours::YellowHighlight.ToCOLORREF());
+			if (IsInRect(mousePt, ScratchPadRect)) {
+				dc->SelectStockObject(NULL_BRUSH);
+				dc->SelectObject(&YellowPen);
+				dc->Rectangle(ScratchPadRect);
+			}
 		}
 
 		// Third line
@@ -343,6 +355,8 @@ public:
 				dc->SelectObject(&YellowPen);
 				dc->Rectangle(RwyArea);
 			}
+
+
 		}
 
 

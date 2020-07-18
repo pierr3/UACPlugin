@@ -43,7 +43,12 @@ public:
 		return TopLeftPosition;
 	};
 
-	CRect Render(CDC* dc, CRadarScreen* instance, POINT mousePt, CMTCD* mtcd, multimap<string, string> veraTools) {
+	CRect Render(CDC* dc, CRadarScreen* instance, POINT mousePt, CMTCD* mtcd, multimap<string, string> veraTools, bool display) {
+		Display = display;
+
+		if (!Display)
+			return {0, 0, 0, 0};
+
 		int saveDc = dc->SaveDC();
 
 		FontManager::SelectStandardFont(dc);
@@ -99,6 +104,8 @@ public:
 		dc->SelectStockObject(NULL_BRUSH);
 		dc->Rectangle(WinOutline);
 
+		instance->AddScreenObject(MTCD_WINDOW, "", Window, true, "");
+
 		if (!Released)
 			return Window;
 
@@ -120,6 +127,8 @@ public:
 		dc->SetTextAlign(TA_LEFT | TA_TOP);
 		int LeftButtonOffset = TopBar.right - dc->GetTextExtent("X").cx * 2 - 3;
 		CRect ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "X", mousePt, false);
+
+		instance->AddScreenObject(MTCD_WINDOW_BUTTONS, "CLOSE", ButtonRect, false, "Close MTCD Window");
 	
 		dc->SetTextColor(Colours::AircraftBlue.ToCOLORREF());
 

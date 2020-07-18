@@ -11,6 +11,8 @@ namespace Colours {
 	const Color YellowWarning(167, 167, 0);
 	const Color PurpleDisplay(235, 0, 201);
 	const Color OrangeTool(200, 80, 0);
+	const Color BlueTool(68, 165, 201);
+	const Color LightOrange(224, 160, 0);
 	const Color AirwayBlue(0, 170, 170);
 	const Color RedWarning(255, 0, 0);
 

@@ -142,6 +142,7 @@
     <ClInclude Include="MTCD.h" />
     <ClInclude Include="MTCDWindow.h" />
     <ClInclude Include="MUAC.h" />
+    <ClInclude Include="PopoutMenu.h" />
     <ClInclude Include="RadarScreen.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="RouteRenderer.h" />

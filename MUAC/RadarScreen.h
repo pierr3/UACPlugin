@@ -67,6 +67,7 @@ private:
 	bool Blink = false;
 
 	string AcquiringSepTool = "";
+	string FixedQDMTool = "";
 
 	struct RadarFiltersStruct {
 		int Hard_Low = 0;

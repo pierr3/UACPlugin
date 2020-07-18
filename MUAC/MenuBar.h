@@ -28,7 +28,10 @@ public:
 		data[BUTTON_FILTER_SOFT_LOW] = "200 =";
 		data[BUTTON_FILTER_SOFT_HIGH] = "999 =";
 		data[BUTTON_FILTER_HARD_HIGH] = "999 =";
+		data[BUTTON_MTCD] = "MTCD";
+		data[BUTTON_FIM] = "VAR FIM";
 		data[BUTTON_QDM] = "QDM";
+		data[BUTTON_TOPDOWN] = "T";
 		data[BUTTON_MODE_A] = "A";
 		data[BUTTON_LABEL_V] = "V";
 		data[BUTTON_PRIMARY_TARGETS_ON] = "PR";

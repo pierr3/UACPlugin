@@ -87,6 +87,10 @@ public:
 					dc->SetTextColor(Colours::YellowWarning.ToCOLORREF());
 				}
 
+				if (TagItem.ColourType == TagItem::TagColourTypes::Important) {
+					dc->SetTextColor(Colours::LightOrange.ToCOLORREF());
+				}
+
 				bool needBacktick = false;
 				bool needYellowUnderline = false;
 				if (TagItem.Text.compare(0, PREFIX_BACKSTEP.length(), PREFIX_BACKSTEP) == 0) {
@@ -110,7 +114,7 @@ public:
 				}
 
 				if (TagItem.Text.compare(0, PREFIX_BLUE_COLOR.length(), PREFIX_BLUE_COLOR) == 0) {
-					dc->SetTextColor(Colours::AircraftBlue.ToCOLORREF());
+					dc->SetTextColor(Colours::BlueTool.ToCOLORREF());
 					TagItem.Text.erase(0, PREFIX_BLUE_COLOR.length());
 				}
 

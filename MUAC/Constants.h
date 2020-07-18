@@ -45,32 +45,37 @@ const int BUTTON_FILTER_SOFT_LOW = 407;
 const int BUTTON_FILTER_SOFT_HIGH = 408;
 const int BUTTON_FILTER_HARD_HIGH = 409;
 
-const int BUTTON_RDF_UNUSED = 410;
-const int BUTTON_QDM = 411;
-const int BUTTON_TOPDOWN_UNUSED = 412;
+const int BUTTON_MTCD = 410;
+const int BUTTON_FIM = 411;
 
-const int BUTTON_MODE_A = 413;
-const int BUTTON_LABEL_V = 414;
+const int BUTTON_QDM = 421;
+const int BUTTON_TOPDOWN = 422;
 
-const int BUTTON_PRIMARY_TARGETS_ON = 415;
+const int BUTTON_MODE_A = 423;
+const int BUTTON_LABEL_V = 424;
 
-const int BUTTON_VFR_ON = 416;
+const int BUTTON_PRIMARY_TARGETS_ON = 425;
 
-const int BUTTON_VELOTH = 417;
-const int BUTTON_VEL1 = 418;
-const int BUTTON_VEL2 = 419;
-const int BUTTON_VEL4 = 420;
-const int BUTTON_VEL8 = 421;
+const int BUTTON_VFR_ON = 426;
 
-const int BUTTON_DOTS = 422;
+const int BUTTON_VELOTH = 427;
+const int BUTTON_VEL1 = 428;
+const int BUTTON_VEL2 = 429;
+const int BUTTON_VEL4 = 430;
+const int BUTTON_VEL8 = 431;
+
+const int BUTTON_DOTS = 432;
+
 
 const int FIM_WINDOW = 501;
 
 const int FIM_STAR = 502;
 const int FIM_RWY = 503;
 const int FIM_SCRATCHPAD = 504;
+const int FIM_CLOSE = 505;
 
 const int MTCD_WINDOW = 551;
+const int MTCD_WINDOW_BUTTONS = 552;
 
 // Clickable tag items
 
@@ -85,6 +90,10 @@ const int SCREEN_TAG_COP = 708;
 const int SCREEN_TAG_SEP = 709;
 const int SCREEN_TAG_SSR = 710;
 const int SCREEN_TAG_ASPEED = 711;
+const int SCREEN_TAG_RWY = 712;
+const int SCREEN_TAG_ADES = 713;
+const int SCREEN_TAG_GSPEED = 714;
+const int SCREEN_TAG_STAR = 715;
 
 // Functions
 const int FUNC_FILTER_HARD_LOW = BUTTON_FILTER_HARD_LOW;

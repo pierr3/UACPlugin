@@ -34,6 +34,8 @@ void RadarScreen::LoadAllData()
 	ButtonsPressed[BUTTON_VELOTH] = true;
 	ButtonsPressed[BUTTON_PRIMARY_TARGETS_ON] = true;
 	ButtonsPressed[BUTTON_DOTS] = true;
+	ButtonsPressed[BUTTON_MTCD] = true;
+	ButtonsPressed[BUTTON_FIM] = true;
 
 	LoadFilterButtonsData();
 }
@@ -94,19 +96,25 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		TagAreas.clear();
 		SoftTagAreas.clear();
 
-		// Sep tools
 
-		CPen SepToolColorPen(PS_SOLID, 1, Colours::OrangeTool.ToCOLORREF());
-		dc.SelectObject(&SepToolColorPen);
-		dc.SetTextColor(Colours::OrangeTool.ToCOLORREF());
 
 		FontManager::SelectStandardFont(&dc);
 
 		// 
-		// First is active tool
+		// Starting with tools
 		//
 
+		// VERA
+
+		// Sep tools
+
+
 		if (AcquiringSepTool != "") {
+
+			CPen SepToolColorPen(PS_SOLID, 1, Colours::OrangeTool.ToCOLORREF());
+			dc.SelectObject(&SepToolColorPen);
+			dc.SetTextColor(Colours::OrangeTool.ToCOLORREF());
+
 			CPosition ActivePosition = GetPlugIn()->RadarTargetSelect(AcquiringSepTool.c_str()).GetPosition().GetPosition();
 			
 			if (GetPlugIn()->RadarTargetSelect(AcquiringSepTool.c_str()).GetPosition().IsValid()) {
@@ -133,9 +141,41 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			RequestRefresh();
 		}
 
+		// Fixed QDM
+
+		if (FixedQDMTool != "") {
+			CPen SepToolColorPen(PS_SOLID, 1, Colours::BlueTool.ToCOLORREF());
+			dc.SelectObject(&SepToolColorPen);
+			dc.SetTextColor(Colours::BlueTool.ToCOLORREF());
+
+			CPosition ActivePosition = GetPlugIn()->RadarTargetSelect(FixedQDMTool.c_str()).GetPosition().GetPosition();
+
+			if (GetPlugIn()->RadarTargetSelect(FixedQDMTool.c_str()).GetPosition().IsValid()) {
+				POINT ActivePositionPoint = ConvertCoordFromPositionToPixel(ActivePosition);
+
+				dc.MoveTo(ActivePositionPoint);
+				dc.LineTo(MousePoint);
+
+				string headingText = padWithZeros(3, (int)ActivePosition.DirectionTo(ConvertCoordFromPixelToPosition(MousePoint)));
+
+				string distanceText = to_string(ActivePosition.DistanceTo(ConvertCoordFromPixelToPosition(MousePoint)));
+				size_t decimal_pos = distanceText.find(".");
+				distanceText = distanceText.substr(0, decimal_pos + 2) + "nm";
+
+				POINT TextPositon = { MousePoint.x + 15, MousePoint.y };
+				dc.TextOutA(TextPositon.x, TextPositon.y, string(headingText + "/" + distanceText).c_str());
+			}
+
+			RequestRefresh();
+		}
+
 		// 
 		// Other tools
 		//
+		CPen SepToolColorPen(PS_SOLID, 1, Colours::OrangeTool.ToCOLORREF());
+		dc.SelectObject(&SepToolColorPen);
+		dc.SetTextColor(Colours::OrangeTool.ToCOLORREF());
+
 		for (auto kv : SepToolPairs) {
 			CRadarTarget FirstTarget = GetPlugIn()->RadarTargetSelect(kv.first.c_str());
 			CRadarTarget SecondTarget = GetPlugIn()->RadarTargetSelect(kv.second.c_str());
@@ -331,10 +371,17 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 		// if in a state that needs to force filters
 		if (AcState == Tag::TagStates::Redundant || AcState == Tag::TagStates::TransferredFromMe || 
-			AcState == Tag::TagStates::TransferredToMe || AcState == Tag::TagStates::Assumed) {
+			AcState == Tag::TagStates::TransferredToMe) {
 			IsSoft = false;
 			HideTarget = false;
 		}
+
+		// In topdown mode, assumed traffic can be hidden by filters to facilitate topdown control
+		if (AcState == Tag::TagStates::Assumed && !ButtonsPressed[BUTTON_TOPDOWN]) {
+			IsSoft = false;
+			HideTarget = false;
+		}
+
 
 		//
 		// Final decision
@@ -374,7 +421,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 				continue;
 
 			Tag t = Tag(AcState, isDetailed, IsSoft, ButtonsPressed[BUTTON_MODE_A], 
-				ButtonsPressed[BUTTON_LABEL_V], this, MtcdInstance, radarTarget, radarTarget.GetCorrelatedFlightPlan());
+				ButtonsPressed[BUTTON_LABEL_V], ButtonsPressed[BUTTON_TOPDOWN], this, MtcdInstance, radarTarget, radarTarget.GetCorrelatedFlightPlan());
 
 			// Getting the tag center
 			if (TagOffsets.find(radarTarget.GetCallsign()) == TagOffsets.end())
@@ -439,11 +486,10 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		CFlightPlan fimFp = fimRt.GetCorrelatedFlightPlan();
 
 		// FIM Window
-		CRect r = FIMWindow->Render(&dc, this, MousePoint, fimRt, fimFp);
-		AddScreenObject(FIM_WINDOW, "", r, true, "");
-
-		r = MTCDWindow->Render(&dc, this, MousePoint, MtcdInstance, SepToolPairs);
-		AddScreenObject(MTCD_WINDOW, "", r, true, "");
+		FIMWindow->Render(&dc, this, MousePoint, fimRt, fimFp, ButtonsPressed[BUTTON_FIM]);
+		
+		// MTCD Window
+		MTCDWindow->Render(&dc, this, MousePoint, MtcdInstance, SepToolPairs, ButtonsPressed[BUTTON_MTCD]);
 
 		// Soft Tag deconfliction
 		for (const auto areas : SoftTagAreas)
@@ -549,9 +595,9 @@ void RadarScreen::OnMoveScreenObject(int ObjectType, const char * sObjectId, POI
 	}
 
 	if (ObjectType == SCREEN_AC_SYMBOL) {
-		AcquiringSepTool = sObjectId;
+		FixedQDMTool = sObjectId;
 		if (Released)
-			AcquiringSepTool = "";
+			FixedQDMTool = "";
 	}
 
 	if (ObjectType == FIM_WINDOW) {
@@ -610,6 +656,11 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 
 		if (ObjectType == BUTTON_QDM)
 			ButtonsPressed[BUTTON_QDM] = false;
+
+		if (ObjectType == BUTTON_TOPDOWN) {
+			ButtonsPressed[BUTTON_LABEL_V] = true;
+			ButtonsPressed[BUTTON_VFR_ON] = true;
+		}
 
 		if (ObjectType == BUTTON_DECREASE_RANGE || ObjectType == BUTTON_INCREASE_RANGE) {
 			ButtonsPressed[ObjectType] = false;
@@ -690,6 +741,16 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		}
 	}
 
+	if (ObjectType == FIM_STAR || ObjectType == FIM_RWY || ObjectType == FIM_SCRATCHPAD) {
+		CRadarTarget radarTarget = GetPlugIn()->RadarTargetSelect(sObjectId);
+
+		bool IsPrimary = !radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI();
+		if (IsPrimary || !radarTarget.GetCorrelatedFlightPlan().IsValid())
+			GetPlugIn()->SetASELAircraft(radarTarget);
+		else
+			GetPlugIn()->SetASELAircraft(radarTarget.GetCorrelatedFlightPlan());
+	}
+
 	if (ObjectType == FIM_STAR) {
 		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
 			TAG_ITEM_FUNCTION_ASSIGNED_STAR, Pt, Area);
@@ -698,6 +759,14 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 	if (ObjectType == FIM_RWY) {
 		StartTagFunction(sObjectId, NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, sObjectId, NULL,
 			TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY, Pt, Area);
+	}
+
+	if (ObjectType == MTCD_WINDOW_BUTTONS) {
+		ButtonsPressed[BUTTON_MTCD] = false;
+	}
+
+	if (ObjectType == FIM_CLOSE) {
+		ButtonsPressed[BUTTON_FIM] = false;
 	}
 
 	if (ObjectType == FIM_SCRATCHPAD) {
@@ -758,12 +827,18 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 		}
 
 		if (ObjectType == SCREEN_TAG_COP) {
-			if (fp.GetTrackingControllerIsMe()) {
-				FunctionId = TAG_ITEM_FUNCTION_COPX_NAME;
+			if (Button == BUTTON_LEFT) {
+				if (fp.GetTrackingControllerIsMe()) {
+					FunctionId = TAG_ITEM_FUNCTION_COPX_NAME;
+				}
+				else {
+					FunctionId = TAG_ITEM_FUNCTION_COPN_NAME;
+				}
 			}
 			else {
-				FunctionId = TAG_ITEM_FUNCTION_COPN_NAME;
+				FunctionId = TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD;
 			}
+
 		}
 
 		if (ObjectType == SCREEN_TAG_SEP) {
@@ -778,6 +853,15 @@ void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, PO
 
 		if (ObjectType == SCREEN_TAG_SSR)
 			FunctionId = TAG_ITEM_FUNCTION_SQUAWK_POPUP;
+
+		if (ObjectType == SCREEN_TAG_RWY)
+			FunctionId = TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY;
+
+		if (ObjectType == SCREEN_TAG_STAR)
+			FunctionId = TAG_ITEM_FUNCTION_ASSIGNED_STAR;
+		
+		if (ObjectType == SCREEN_TAG_GSPEED || ObjectType == SCREEN_TAG_ADES)
+			FunctionId = TAG_ITEM_FUNCTION_OPEN_FP_DIALOG;
 
 		if (ObjectType == SCREEN_TAG_ASPEED) {
 			if (Button == BUTTON_LEFT)

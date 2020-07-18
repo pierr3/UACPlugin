@@ -21,6 +21,8 @@ public:
 
 	// TagItems Definition
 	TagItem CallsignItem = TagItem::CreatePassive("Callsign", SCREEN_TAG_CALLSIGN, TagItem::TagColourTypes::Highlight);
+	TagItem WakeItem = TagItem::CreatePassive("Wake", 0, TagItem::TagColourTypes::Important);
+	TagItem ActypeItem = TagItem::CreatePassive("Actype");
 	TagItem AltitudeItem = TagItem::CreatePassive("Altitude");
 	TagItem TendencyItem = TagItem::CreatePassive("Tendency");
 
@@ -30,6 +32,12 @@ public:
 	TagItem FPMWarnings = TagItem::CreatePassive("FPM", 0, TagItem::TagColourTypes::Information);
 	
 	TagItem SSRIndicatorItem = TagItem::CreatePassive("SSRIndicator");
+
+	TagItem ADESItem = TagItem::CreatePassive("ADES", SCREEN_TAG_ADES);
+
+	TagItem SidStar = TagItem::CreatePassive("SidStar", SCREEN_TAG_STAR);
+
+	TagItem AssignedRunway = TagItem::CreatePassive("RWY", SCREEN_TAG_RWY, TagItem::TagColourTypes::Important);
 
 	TagItem CoordinationIndicatorItem = TagItem::CreatePassive("CoordIndicator");
 
@@ -46,7 +54,7 @@ public:
 	// Current or next sector
 	TagItem SectorItem = TagItem::CreatePassive("Sector", SCREEN_TAG_SECTOR);
 
-	TagItem ReportedGS = TagItem::CreatePassive("ReportedGS");
+	TagItem ReportedGS = TagItem::CreatePassive("ReportedGS", SCREEN_TAG_GSPEED);
 	TagItem VerticalRate = TagItem::CreatePassive("VerticalRate");
 
 	TagItem AssignedSpeed = TagItem::CreatePassive("AssignedSpeed", SCREEN_TAG_ASPEED);
@@ -75,14 +83,30 @@ public:
 		{ BlankItem, XFLItem, COPItem, RFLItem },
 		{ BlankItem, ReportedGS, VerticalRate, AssignedSpeed } };
 
+	// Topdown
+
+	const vector<vector<TagItem>> ApproachTag = {
+		{ SSRItem, RouteMessageIndicator, FPMWarnings },
+		{ SepItem, CallsignItem, SSRIndicatorItem, WakeItem },
+		{ AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem, AssignedRunway },
+		{ XFLItem, COPItem },
+		{ ReportedGS, VerticalRate, AssignedSpeed } };
+
+	const vector<vector<TagItem>> ApproachMagnifiedTag = {
+		{ SSRItem, RouteMessageIndicator, FPMWarnings },
+		{ SepItem, CallsignItem, SSRIndicatorItem, SectorItem, ActypeItem, WakeItem },
+		{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem, AssignedRunway },
+		{ BlankItem, XFLItem, COPItem, RFLItem, SidStar, ADESItem  },
+		{ BlankItem, ReportedGS, VerticalRate, AssignedSpeed } };
+
 	// Tag Object
 
-	Tag(TagStates State, bool IsMagnified, bool IsSoft, bool isModeAButton, bool isVButton, CRadarScreen* radarScreen, CMTCD* mtcd, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
+	Tag(TagStates State, bool IsMagnified, bool IsSoft, bool isModeAButton, bool isVButton, bool isTopDown, CRadarScreen* radarScreen, CMTCD* mtcd, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
 
 		this->IsMagnified = IsMagnified;
 		this->IsSoft = IsSoft;
 
-		map<string, string> TagReplacementMap = GenerateTag(radarScreen, isVButton, isModeAButton, RadarTarget, FlightPlan, mtcd);
+		map<string, string> TagReplacementMap = GenerateTag(radarScreen, isVButton, isModeAButton, isTopDown, RadarTarget, FlightPlan, mtcd);
 
 		if (State == Uncorrelated && !IsMagnified)
 			Definition = MinimizedTag;
@@ -91,20 +115,23 @@ public:
 			Definition = MinimizedTag;
 
 		if (State == TagStates::NotConcerned && !IsSoft)
-			Definition = StandardTag;
+			Definition = isTopDown ? ApproachTag : StandardTag;
 
 		if (State == TagStates::InSequence && IsSoft)
 			Definition = MinimizedTag;
 
 		if (State == TagStates::InSequence && !IsSoft)
-			Definition = StandardTag;
-
+			Definition = isTopDown ? ApproachTag : StandardTag;
+			
 		if (State == TagStates::Next || State == TagStates::TransferredToMe 
 			|| State == TagStates::Assumed || State == TagStates::TransferredFromMe || State == TagStates::Redundant)
-			Definition = StandardTag;
+			Definition = isTopDown ? ApproachTag : StandardTag;
 
 		if (IsMagnified && State != Uncorrelated)
 			Definition = MagnifiedTag;
+
+		if (IsMagnified && isTopDown && State != Uncorrelated)
+			Definition = ApproachMagnifiedTag;
 
 		if (IsMagnified && State == Uncorrelated)
 			Definition = UncorrelatedMagnifiedTag;
@@ -136,7 +163,7 @@ public:
 	bool IsSoft;
 
 protected:
-	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isVButton, bool isModeAButton, CRadarTarget RadarTarget, CFlightPlan FlightPlan, CMTCD* mtcd) {
+	map<string, string> GenerateTag(CRadarScreen* radarScreen, bool isVButton, bool isModeAButton, bool isTopdown, CRadarTarget RadarTarget, CFlightPlan FlightPlan, CMTCD* mtcd) {
 
 		map<string, string> TagReplacementMap;
 
@@ -187,9 +214,11 @@ protected:
 		if (RadarTarget.GetPosition().GetFlightLevel() <= radarScreen->GetPlugIn()->GetTransitionAltitude())
 			alt = "A" + to_string((int)RoundTo(RadarTarget.GetPosition().GetPressureAltitude(), 100) / 100);
 
-		if (FlightPlan.IsValid()) {
-			if (!FlightPlan.GetFlightPlanData().IsRvsm())
-				alt = PREFIX_YELLOW_UNDERLINE + alt;
+		//
+		// IsRVSM is bugged and returns the opposite of what it should
+		//
+		if (FlightPlan.IsValid() && FlightPlan.GetFlightPlanData().IsRvsm()) {
+			alt = PREFIX_YELLOW_UNDERLINE + alt;
 		}
 
 		TagReplacementMap.insert(pair<string, string>("Altitude", alt));
@@ -342,6 +371,59 @@ protected:
 			TagReplacementMap.insert(pair<string, string>("RTEM", rteMsg.c_str()));
 
 			//
+			// Wake
+			//
+			string wake = "?";
+			wake = FlightPlan.GetFlightPlanData().GetAircraftWtc();
+
+			TagReplacementMap.insert(pair<string, string>("Wake", wake.c_str()));
+
+			//
+			// Actype
+			//
+			string actype = "";
+			if (IsMagnified)
+				actype = "????";
+			actype = string(FlightPlan.GetFlightPlanData().GetAircraftFPType()).substr(0, 5);
+
+			TagReplacementMap.insert(pair<string, string>("Actype", actype.c_str()));
+
+			//
+			// ADES
+			//
+
+			string ades = "";
+			if (IsMagnified)
+				ades = "ADES";
+			ades = string(FlightPlan.GetFlightPlanData().GetDestination());
+
+			TagReplacementMap.insert(pair<string, string>("ADES", ades.c_str()));
+
+			//
+			// Sid/Star
+			//
+			string sidstar = "";
+			if (IsMagnified)
+				sidstar = "STAR";
+			if (strlen(FlightPlan.GetFlightPlanData().GetStarName()) != 0)
+				sidstar = string(FlightPlan.GetFlightPlanData().GetStarName());
+
+			TagReplacementMap.insert(pair<string, string>("SidStar", sidstar.c_str()));
+
+			//
+			// RWY
+			//
+
+			string rwy = "";
+			if (IsMagnified)
+				rwy = "RWY";
+
+			if (strlen(FlightPlan.GetFlightPlanData().GetArrivalRwy()) != 0)
+				rwy = string(FlightPlan.GetFlightPlanData().GetArrivalRwy());
+
+			TagReplacementMap.insert(pair<string, string>("RWY", rwy.c_str()));
+
+			//
 			// SSR Indicator
 			//
 			string ssrIndicator = "";
@@ -465,7 +547,7 @@ protected:
 
 					CFlightPlanExtractedRoute exR = FlightPlan.GetExtractedRoute();
 					int index = exR.GetPointsCalculatedIndex();
-					if (index > 0 && index != exR.GetPointsNumber())
+					if (index > 0 && index != exR.GetPointsNumber()-1)
 						Horizontal = PREFIX_GREY_COLOR + exR.GetPointName(index);
 				}
 			}

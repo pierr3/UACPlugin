@@ -8,7 +8,7 @@ using namespace EuroScopePlugIn;
 class TagItem
 {
 public:
-	const enum TagColourTypes { StateColor, Information, Highlight };
+	const enum TagColourTypes { StateColor, Information, Highlight, Important };
 
 	TagItem() {};
 	~TagItem() {};

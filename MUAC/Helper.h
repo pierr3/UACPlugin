@@ -112,6 +112,7 @@ static bool LiangBarsky(RECT Area, POINT fromSrc, POINT toSrc, POINT &ClipFrom, 
 	double t0 = 0.0;    double t1 = 1.0;
 	double xdelta = x1src - x0src;
 	double ydelta = y1src - y0src;
+		
 	double p = 0, q = 0, r;
 
 	for (int edge = 0; edge<4; edge++) {   // Traverse through left, right, bottom, top edges.
