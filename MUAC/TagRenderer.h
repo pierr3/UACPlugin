@@ -14,8 +14,6 @@ using namespace Gdiplus;
 class TagRenderer {
 public:
 	static RECT Render(CDC* dc, POINT MousePt, POINT TagOffset, POINT AcPosition, Tag tag, bool isDetailed, bool isStca, bool isMtcd, map<int, CRect>* DetailedTagClicks) {
-		
-		vector<vector<TagItem>> Definition = tag.Definition;
 
 		int save = dc->SaveDC();
 		
@@ -43,25 +41,25 @@ public:
 			SecondaryColor = Colours::AircraftLightGrey.ToCOLORREF();
 		}
 
-		if (tag.TagState == Tag::TagStates::Redundant) {
+		if (tag.TagState == TagConfiguration::TagStates::Redundant) {
 			SecondaryColor = Colours::AircraftBlue.ToCOLORREF();
 		}
 
-		if (tag.TagState == Tag::TagStates::Assumed) {
+		if (tag.TagState == TagConfiguration::TagStates::Assumed) {
 			PrimaryColor = Colours::AircraftGreen.ToCOLORREF();
 			SecondaryColor = Colours::AircraftGreen.ToCOLORREF();
 		}
 
-		if (tag.TagState == Tag::TagStates::Next || 
-			tag.TagState == Tag::TagStates::InSequence) {
+		if (tag.TagState == TagConfiguration::TagStates::Next ||
+			tag.TagState == TagConfiguration::TagStates::InSequence) {
 			SecondaryColor = Colours::AircraftGreen.ToCOLORREF();
 		}
 
-		if (tag.TagState == Tag::TagStates::TransferredToMe) {
+		if (tag.TagState == TagConfiguration::TagStates::TransferredToMe) {
 			SecondaryColor = Colours::AircraftBlue.ToCOLORREF();
 		}
 
-		if (tag.TagState == Tag::TagStates::TransferredFromMe) {
+		if (tag.TagState == TagConfiguration::TagStates::TransferredFromMe) {
 			PrimaryColor = Colours::AircraftGreen.ToCOLORREF();
 		}
 
@@ -71,7 +69,7 @@ public:
 			FontManager::SelectBoldBigFont(dc);
 
 		int i = 0;
-		for (auto TagLine : Definition) {
+		for (auto TagLine : tag.Definition) {
 			// For each item
 			CSize MeasureRect = { 0, 0 };
 			for (auto TagItem : TagLine) {

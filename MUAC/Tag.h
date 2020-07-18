@@ -11,72 +11,71 @@
 using namespace std;
 using namespace EuroScopePlugIn;
 
-class Tag
-{
-public:
+
+namespace TagConfiguration {
+	const static TagItem CallsignItem = TagItem::CreatePassive("Callsign", SCREEN_TAG_CALLSIGN, TagItem::TagColourTypes::Highlight);
+	const static TagItem WakeItem = TagItem::CreatePassive("Wake", 0, TagItem::TagColourTypes::Important);
+	const static TagItem ActypeItem = TagItem::CreatePassive("Actype");
+	const static TagItem AltitudeItem = TagItem::CreatePassive("Altitude");
+	const static TagItem TendencyItem = TagItem::CreatePassive("Tendency");
+
+	const static TagItem SSRItem = TagItem::CreatePassive("SSR", SCREEN_TAG_SSR);
+	const static TagItem RouteMessageIndicator = TagItem::CreatePassive("RTEM");
+
+	const static TagItem FPMWarnings = TagItem::CreatePassive("FPM", 0, TagItem::TagColourTypes::Information);
+
+	const static TagItem SSRIndicatorItem = TagItem::CreatePassive("SSRIndicator");
+
+	const static TagItem ADESItem = TagItem::CreatePassive("ADES", SCREEN_TAG_ADES);
+
+	const static TagItem SidStar = TagItem::CreatePassive("SidStar", SCREEN_TAG_STAR);
+
+	const static TagItem AssignedRunway = TagItem::CreatePassive("RWY", SCREEN_TAG_RWY, TagItem::TagColourTypes::Important);
+
+	const static TagItem CoordinationIndicatorItem = TagItem::CreatePassive("CoordIndicator");
+
+	// CFL
+	const static TagItem CFLItem = TagItem::CreatePassive("CFL", SCREEN_TAG_CFL);
+	// Combination of NFL and XFL, depending on the state
+	const static TagItem XFLItem = TagItem::CreatePassive("XFL", SCREEN_TAG_XFL);
+	// RFL
+	const static TagItem RFLItem = TagItem::CreatePassive("RFL", SCREEN_TAG_RFL);
+	// COPX/COPN Point Item
+	const static TagItem COPItem = TagItem::CreatePassive("COP", SCREEN_TAG_COP);
+	// Lateral clearance (Direct/HDG)
+	const static TagItem HorizontalClearItem = TagItem::CreatePassive("HDG", SCREEN_TAG_HORIZ);
+	// Current or next sector
+	const static TagItem SectorItem = TagItem::CreatePassive("Sector", SCREEN_TAG_SECTOR);
+
+	const static TagItem ReportedGS = TagItem::CreatePassive("ReportedGS", SCREEN_TAG_GSPEED);
+	const static TagItem VerticalRate = TagItem::CreatePassive("VerticalRate");
+
+	const static TagItem AssignedSpeed = TagItem::CreatePassive("AssignedSpeed", SCREEN_TAG_ASPEED);
+
+	const static TagItem RouteDisplay = TagItem::CreatePassive("R", SCREEN_TAG_ROUTE);
+	const static TagItem SepItem = TagItem::CreatePassive("V", SCREEN_TAG_SEP, TagItem::TagColourTypes::Information);
+
+	const static TagItem BlankItem = TagItem::CreatePassive(" ");
 
 	// General things
 
 	const enum TagStates { Uncorrelated, NotConcerned, InSequence, Next, TransferredToMe, Assumed, TransferredFromMe, Redundant };
 
 	// TagItems Definition
-	TagItem CallsignItem = TagItem::CreatePassive("Callsign", SCREEN_TAG_CALLSIGN, TagItem::TagColourTypes::Highlight);
-	TagItem WakeItem = TagItem::CreatePassive("Wake", 0, TagItem::TagColourTypes::Important);
-	TagItem ActypeItem = TagItem::CreatePassive("Actype");
-	TagItem AltitudeItem = TagItem::CreatePassive("Altitude");
-	TagItem TendencyItem = TagItem::CreatePassive("Tendency");
-
-	TagItem SSRItem = TagItem::CreatePassive("SSR", SCREEN_TAG_SSR);
-	TagItem RouteMessageIndicator = TagItem::CreatePassive("RTEM");
-
-	TagItem FPMWarnings = TagItem::CreatePassive("FPM", 0, TagItem::TagColourTypes::Information);
-	
-	TagItem SSRIndicatorItem = TagItem::CreatePassive("SSRIndicator");
-
-	TagItem ADESItem = TagItem::CreatePassive("ADES", SCREEN_TAG_ADES);
-
-	TagItem SidStar = TagItem::CreatePassive("SidStar", SCREEN_TAG_STAR);
-
-	TagItem AssignedRunway = TagItem::CreatePassive("RWY", SCREEN_TAG_RWY, TagItem::TagColourTypes::Important);
-
-	TagItem CoordinationIndicatorItem = TagItem::CreatePassive("CoordIndicator");
-
-	// CFL
-	TagItem CFLItem = TagItem::CreatePassive("CFL", SCREEN_TAG_CFL);
-	// Combination of NFL and XFL, depending on the state
-	TagItem XFLItem = TagItem::CreatePassive("XFL", SCREEN_TAG_XFL);
-	// RFL
-	TagItem RFLItem = TagItem::CreatePassive("RFL", SCREEN_TAG_RFL);
-	// COPX/COPN Point Item
-	TagItem COPItem = TagItem::CreatePassive("COP", SCREEN_TAG_COP);
-	// Lateral clearance (Direct/HDG)
-	TagItem HorizontalClearItem = TagItem::CreatePassive("HDG", SCREEN_TAG_HORIZ);
-	// Current or next sector
-	TagItem SectorItem = TagItem::CreatePassive("Sector", SCREEN_TAG_SECTOR);
-
-	TagItem ReportedGS = TagItem::CreatePassive("ReportedGS", SCREEN_TAG_GSPEED);
-	TagItem VerticalRate = TagItem::CreatePassive("VerticalRate");
-
-	TagItem AssignedSpeed = TagItem::CreatePassive("AssignedSpeed", SCREEN_TAG_ASPEED);
-
-	TagItem RouteDisplay = TagItem::CreatePassive("R", SCREEN_TAG_ROUTE);
-	TagItem SepItem = TagItem::CreatePassive("V", SCREEN_TAG_SEP, TagItem::TagColourTypes::Information);
-
-	TagItem BlankItem = TagItem::CreatePassive(" ");
 
 	// Tag definitions
-	const vector<vector<TagItem>> MinimizedTag = { { SSRItem }, { AltitudeItem, TendencyItem } };
+	const static vector<vector<TagItem>> MinimizedTag = { { SSRItem }, { AltitudeItem, TendencyItem } };
 
-	const vector<vector<TagItem>> UncorrelatedMagnifiedTag = { { CallsignItem }, { AltitudeItem, TendencyItem }, { ReportedGS, VerticalRate } };
-	
-	const vector<vector<TagItem>> StandardTag = { 
-		{ SSRItem, RouteMessageIndicator, FPMWarnings }, 
+	const static vector<vector<TagItem>> UncorrelatedMagnifiedTag = { { CallsignItem }, { AltitudeItem, TendencyItem }, { ReportedGS, VerticalRate } };
+
+	const static vector<vector<TagItem>> StandardTag = {
+		{ SSRItem, RouteMessageIndicator, FPMWarnings },
 		{ SepItem, CallsignItem, SSRIndicatorItem },
-		{ AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem }, 
-		{ XFLItem, COPItem }, 
+		{ AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
+		{ XFLItem, COPItem },
 		{ ReportedGS, VerticalRate, AssignedSpeed } };
-	
-	const vector<vector<TagItem>> MagnifiedTag = { 
+
+	const static vector<vector<TagItem>> MagnifiedTag = {
 		{ SSRItem, RouteMessageIndicator, FPMWarnings },
 		{ SepItem, CallsignItem, SSRIndicatorItem, SectorItem },
 		{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem },
@@ -85,56 +84,62 @@ public:
 
 	// Topdown
 
-	const vector<vector<TagItem>> ApproachTag = {
+	const static vector<vector<TagItem>> ApproachTag = {
 		{ SSRItem, RouteMessageIndicator, FPMWarnings },
 		{ SepItem, CallsignItem, SSRIndicatorItem, WakeItem },
 		{ AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem, AssignedRunway },
 		{ XFLItem, COPItem },
 		{ ReportedGS, VerticalRate, AssignedSpeed } };
 
-	const vector<vector<TagItem>> ApproachMagnifiedTag = {
+	const static vector<vector<TagItem>> ApproachMagnifiedTag = {
 		{ SSRItem, RouteMessageIndicator, FPMWarnings },
 		{ SepItem, CallsignItem, SSRIndicatorItem, SectorItem, ActypeItem, WakeItem },
 		{ RouteDisplay, AltitudeItem, TendencyItem, CFLItem, HorizontalClearItem, AssignedRunway },
 		{ BlankItem, XFLItem, COPItem, RFLItem, SidStar, ADESItem  },
 		{ BlankItem, ReportedGS, VerticalRate, AssignedSpeed } };
 
+
+}
+
+class Tag
+{
+public:
 	// Tag Object
 
-	Tag(TagStates State, bool IsMagnified, bool IsSoft, bool isModeAButton, bool isVButton, bool isTopDown, CRadarScreen* radarScreen, CMTCD* mtcd, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
+	Tag(TagConfiguration::TagStates State, bool IsMagnified, bool IsSoft, bool isModeAButton, bool isVButton, bool isTopDown, CRadarScreen* radarScreen, CMTCD* mtcd, CRadarTarget RadarTarget, CFlightPlan FlightPlan) {
 
 		this->IsMagnified = IsMagnified;
 		this->IsSoft = IsSoft;
 
 		map<string, string> TagReplacementMap = GenerateTag(radarScreen, isVButton, isModeAButton, isTopDown, RadarTarget, FlightPlan, mtcd);
 
-		if (State == Uncorrelated && !IsMagnified)
-			Definition = MinimizedTag;
+		if (State == TagConfiguration::Uncorrelated && !IsMagnified)
+			Definition = TagConfiguration::MinimizedTag;
 
-		if (State == TagStates::NotConcerned && IsSoft)
-			Definition = MinimizedTag;
+		if (State == TagConfiguration::TagStates::NotConcerned && IsSoft)
+			Definition = TagConfiguration::MinimizedTag;
 
-		if (State == TagStates::NotConcerned && !IsSoft)
-			Definition = isTopDown ? ApproachTag : StandardTag;
+		if (State == TagConfiguration::TagStates::NotConcerned && !IsSoft)
+			Definition = isTopDown ? TagConfiguration::ApproachTag : TagConfiguration::StandardTag;
 
-		if (State == TagStates::InSequence && IsSoft)
-			Definition = MinimizedTag;
+		if (State == TagConfiguration::TagStates::InSequence && IsSoft)
+			Definition = TagConfiguration::MinimizedTag;
 
-		if (State == TagStates::InSequence && !IsSoft)
-			Definition = isTopDown ? ApproachTag : StandardTag;
+		if (State == TagConfiguration::TagStates::InSequence && !IsSoft)
+			Definition = isTopDown ? TagConfiguration::ApproachTag : TagConfiguration::StandardTag;
 			
-		if (State == TagStates::Next || State == TagStates::TransferredToMe 
-			|| State == TagStates::Assumed || State == TagStates::TransferredFromMe || State == TagStates::Redundant)
-			Definition = isTopDown ? ApproachTag : StandardTag;
+		if (State == TagConfiguration::TagStates::Next || State == TagConfiguration::TagStates::TransferredToMe
+			|| State == TagConfiguration::TagStates::Assumed || State == TagConfiguration::TagStates::TransferredFromMe || State == TagConfiguration::TagStates::Redundant)
+			Definition = isTopDown ? TagConfiguration::ApproachTag : TagConfiguration::StandardTag;
 
-		if (IsMagnified && State != Uncorrelated)
-			Definition = MagnifiedTag;
+		if (IsMagnified && State != TagConfiguration::Uncorrelated)
+			Definition = TagConfiguration::MagnifiedTag;
 
-		if (IsMagnified && isTopDown && State != Uncorrelated)
-			Definition = ApproachMagnifiedTag;
+		if (IsMagnified && isTopDown && State != TagConfiguration::Uncorrelated)
+			Definition = TagConfiguration::ApproachMagnifiedTag;
 
-		if (IsMagnified && State == Uncorrelated)
-			Definition = UncorrelatedMagnifiedTag;
+		if (IsMagnified && State == TagConfiguration::Uncorrelated)
+			Definition = TagConfiguration::UncorrelatedMagnifiedTag;
 
 		TagState = State;
 
@@ -158,7 +163,7 @@ public:
 	~Tag() {};
 
 	vector<vector<TagItem>> Definition;
-	TagStates TagState;
+	TagConfiguration::TagStates TagState;
 	bool IsMagnified;
 	bool IsSoft;
 

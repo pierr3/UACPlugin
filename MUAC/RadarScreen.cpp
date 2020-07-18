@@ -305,7 +305,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		int Altitude = radarTarget.GetPosition().GetFlightLevel();
 		POINT radarTargetPoint = ConvertCoordFromPositionToPixel(radarTarget.GetPosition().GetPosition());
 
-		Tag::TagStates AcState = Tag::TagStates::NotConcerned;
+		TagConfiguration::TagStates AcState = TagConfiguration::TagStates::NotConcerned;
 
 		bool IsSoft = false;
 		bool IsPrimary = !radarTarget.GetPosition().GetTransponderC() && !radarTarget.GetPosition().GetTransponderI();
@@ -348,36 +348,36 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		// Determining the tag state
 		if (isCorrelated) {
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_NOTIFIED)
-				AcState = Tag::TagStates::InSequence;
+				AcState = TagConfiguration::TagStates::InSequence;
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_COORDINATED)
-				AcState = Tag::TagStates::Next;
+				AcState = TagConfiguration::TagStates::Next;
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED)
-				AcState = Tag::TagStates::TransferredToMe;
+				AcState = TagConfiguration::TagStates::TransferredToMe;
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED)
-				AcState = Tag::TagStates::TransferredFromMe;
+				AcState = TagConfiguration::TagStates::TransferredFromMe;
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_ASSUMED)
-				AcState = Tag::TagStates::Assumed;
+				AcState = TagConfiguration::TagStates::Assumed;
 			if (CorrelatedFlightPlan.GetState() == FLIGHT_PLAN_STATE_REDUNDANT)
-				AcState = Tag::TagStates::Redundant;
+				AcState = TagConfiguration::TagStates::Redundant;
 		}
 		else{ 
-			AcState = Tag::TagStates::Uncorrelated;
+			AcState = TagConfiguration::TagStates::Uncorrelated;
 		}
 
 		if (IsPrimary) {
-			AcState = Tag::TagStates::NotConcerned;
+			AcState = TagConfiguration::TagStates::NotConcerned;
 			IsSoft = false;
 		}
 
 		// if in a state that needs to force filters
-		if (AcState == Tag::TagStates::Redundant || AcState == Tag::TagStates::TransferredFromMe || 
-			AcState == Tag::TagStates::TransferredToMe) {
+		if (AcState == TagConfiguration::TagStates::Redundant || AcState == TagConfiguration::TagStates::TransferredFromMe ||
+			AcState == TagConfiguration::TagStates::TransferredToMe) {
 			IsSoft = false;
 			HideTarget = false;
 		}
 
 		// In topdown mode, assumed traffic can be hidden by filters to facilitate topdown control
-		if (AcState == Tag::TagStates::Assumed && !ButtonsPressed[BUTTON_TOPDOWN]) {
+		if (AcState == TagConfiguration::TagStates::Assumed && !ButtonsPressed[BUTTON_TOPDOWN]) {
 			IsSoft = false;
 			HideTarget = false;
 		}

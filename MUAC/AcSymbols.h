@@ -10,7 +10,7 @@ using namespace EuroScopePlugIn;
 class AcSymbols
 {
 public:
-	static CRect DrawSquareAndTrail(CDC* dc, Tag::TagStates State, CRadarScreen* radar, CRadarTarget radarTarget, bool drawTrail, bool isSoft, bool isStca, bool blink, bool isDetailed) {
+	static CRect DrawSquareAndTrail(CDC* dc, TagConfiguration::TagStates State, CRadarScreen* radar, CRadarTarget radarTarget, bool drawTrail, bool isSoft, bool isStca, bool blink, bool isDetailed) {
 		int save = dc->SaveDC();
 		
 		COLORREF SymbolColor = Colours::AircraftDarkGrey.ToCOLORREF();
@@ -21,15 +21,15 @@ public:
 			SymbolColor = Colours::AircraftLightGrey.ToCOLORREF();
 		}
 
-		if (State == Tag::TagStates::Assumed) {
+		if (State == TagConfiguration::TagStates::Assumed) {
 			TrailColor = Colours::AircraftGreen.ToCOLORREF();
 			SymbolColor = Colours::AircraftGreen.ToCOLORREF();
 		}
 
-		if (State == Tag::TagStates::Next || State == Tag::TagStates::TransferredToMe)
+		if (State == TagConfiguration::TagStates::Next || State == TagConfiguration::TagStates::TransferredToMe)
 			SymbolColor = Colours::AircraftGreen.ToCOLORREF();
 
-		if (State == Tag::TagStates::Redundant)
+		if (State == TagConfiguration::TagStates::Redundant)
 			SymbolColor = Colours::AircraftBlue.ToCOLORREF();
 
 		if (isStca) {
@@ -142,7 +142,7 @@ public:
 		return CRect(radarTargetPoint.x - DiamondSize, radarTargetPoint.y - DiamondSize, radarTargetPoint.x + DiamondSize, radarTargetPoint.y + DiamondSize);
 	}
 
-	static void DrawSpeedVector(CDC* dc, Tag::TagStates State, CRadarScreen* radar, CRadarTarget radarTarget, bool isPrimary, bool isSoft, int Seconds) {
+	static void DrawSpeedVector(CDC* dc, TagConfiguration::TagStates State, CRadarScreen* radar, CRadarTarget radarTarget, bool isPrimary, bool isSoft, int Seconds) {
 		int save = dc->SaveDC();
 		
 		COLORREF VectorColor = Colours::AircraftDarkGrey.ToCOLORREF();
@@ -150,7 +150,7 @@ public:
 		if (!isSoft)
 			VectorColor = Colours::AircraftLightGrey.ToCOLORREF();
 
-		if (State == Tag::TagStates::Assumed || State == Tag::TagStates::Next || State == Tag::TagStates::TransferredToMe)
+		if (State == TagConfiguration::TagStates::Assumed || State == TagConfiguration::TagStates::Next || State == TagConfiguration::TagStates::TransferredToMe)
 			VectorColor = Colours::AircraftGreen.ToCOLORREF();
 
 		CPen GreenPen(PS_SOLID, 1, VectorColor);

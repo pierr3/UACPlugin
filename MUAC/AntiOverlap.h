@@ -90,6 +90,17 @@ private:
 			if (kv.second == Area)
 				continue;
 
+			//
+			// Filter situatiosn where tags are more than 400px apart for performance
+			//
+			if (abs(kv.second.top - Area.top) > 400)
+				continue;
+
+			if (abs(kv.second.right - Area.right) > 400)
+				continue;
+
+			
+
 			POINT acPt = instance->ConvertCoordFromPositionToPixel(instance->GetPlugIn()->RadarTargetSelect(kv.first.c_str()).GetPosition().GetPosition());
 
 			// If tags intersect
