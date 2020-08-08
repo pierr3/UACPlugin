@@ -13,10 +13,10 @@ using namespace EuroScopePlugIn;
 class CMTCD
 {
 public:
-	int mtcd_distance = 7;
+	int mtcd_distance = 9;
 	int mtcd_height = 950;
 	int mtcd_disable_level = 10500;
-	int max_extrapolate_time = 30;
+	int max_extrapolate_time = 20;
 
 	int start_time = CSTCA::time_to_extrapolate/60;
 
@@ -50,10 +50,12 @@ public:
 				continue;
 
 			// MTCD Only works for assumed flights and incoming flights
-			if (!fp.GetTrackingControllerIsMe()) {
-				if (fp.GetFPState() != FLIGHT_PLAN_STATE_COORDINATED)
-					continue;
+			if (!fp.GetTrackingControllerIsMe() && fp.GetFPState() != FLIGHT_PLAN_STATE_COORDINATED) {
+				continue;
 			}
+
+			if (!fp.GetTrackingControllerIsMe())
+				continue;
 				
 			// We scan up to x
 			int toExtract = min(max_extrapolate_time, PosPred.GetPointsNumber());

@@ -347,7 +347,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			if (IsInRect(MousePoint, mouseOverArea)) {
 				clock_t clock_final = clock() - mouseOverTagTimer;
 				double delta_t = (double)clock_final / ((double)CLOCKS_PER_SEC);
-				if (delta_t > 0.2) {
+				if (delta_t > 0.1) {
 					DetailedTag = mouseOverTag;
 					mouseOverTag = "";
 
@@ -524,6 +524,10 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			if ((!IsInRect(MousePoint, r) && !IsInRect(MousePoint, SymbolArea)) && DetailedTag == radarTarget.GetCallsign())
 				DetailedTag = "";
 
+			// Check if route over is still drawn
+			if (!IsInRect(MousePoint, RouteDisplayMouseOverArea) && RouteDisplayMouseOver == radarTarget.GetCallsign())
+				RouteDisplayMouseOver = "";
+
 			// Store the tag for tag deconfliction
 			if (!isDetailed) {
 				if (IsSoft)
@@ -548,6 +552,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 			// If the route is shown, then we display it
 			if (find(RouteBeingShown.begin(), RouteBeingShown.end(), radarTarget.GetCallsign()) != RouteBeingShown.end()) {
+				RouteRenderer::Render(&dc, this, radarTarget, CorrelatedFlightPlan);
+			} else if (RouteDisplayMouseOver == radarTarget.GetCallsign()) {
 				RouteRenderer::Render(&dc, this, radarTarget, CorrelatedFlightPlan);
 			}
 		}
@@ -705,9 +711,18 @@ void RadarScreen::OnOverScreenObject(int ObjectType, const char * sObjectId, POI
 			mouseOverArea = Area;
 		}
 	}
+
+	if (ObjectType == SCREEN_TAG_ROUTE) {
+		RouteDisplayMouseOver = sObjectId;
+		RouteDisplayMouseOverArea = Area;
+	}
 	
 	MousePoint = Pt;
 	RequestRefresh();
+}
+
+void RadarScreen::OnFlightPlanControllerAssignedDataUpdate(CFlightPlan FlightPlan, int DataType)
+{
 }
 
 void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)

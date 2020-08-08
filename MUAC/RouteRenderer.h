@@ -33,6 +33,8 @@ public:
 
 			FontManager::SelectStandardFont(dc);
 
+
+			// Use the calculated route first to display the waypoints
 			for (int i = index; i < exR.GetPointsNumber(); i++)
 			{
 				POINT exRPos = instance->ConvertCoordFromPositionToPixel(exR.GetPointPosition(i));
@@ -71,6 +73,30 @@ public:
 				dc->SelectObject(&oldPen);
 
 			}
+
+			CPen routePen(PS_SOLID, 1, Colours::AirwayBlue.ToCOLORREF());
+			CPen* oldPen = dc->SelectObject(&routePen);
+
+			// Use predicted routed to display more information
+			bool reachToC = false;
+			bool reachToD = false;
+
+			CFlightPlanPositionPredictions PosPred = CorrFp.GetPositionPredictions();
+			for (int i = 0; i < PosPred.GetPointsNumber(); i++) {
+				// Every three minutes, we show a tick
+				if (i % 3 == 0) {
+					POINT markerPosition = instance->ConvertCoordFromPositionToPixel(PosPred.GetPosition(i));
+					dc->MoveTo(markerPosition.x, markerPosition.y - 3);
+					dc->LineTo(markerPosition.x, markerPosition.y + 4);
+					dc->MoveTo(markerPosition.x - 3, markerPosition.y);
+					dc->LineTo(markerPosition.x + 4, markerPosition.y);
+				}
+
+
+			}
+
+			dc->SelectObject(&oldPen);
+
 		}
 
 		dc->RestoreDC(saveRouteDc);

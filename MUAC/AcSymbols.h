@@ -26,8 +26,15 @@ public:
 			SymbolColor = Colours::AircraftGreen.ToCOLORREF();
 		}
 
-		if (State == TagConfiguration::TagStates::Next || State == TagConfiguration::TagStates::TransferredToMe)
+		if (State == TagConfiguration::TagStates::Next)
 			SymbolColor = Colours::AircraftGreen.ToCOLORREF();
+
+		if (State == TagConfiguration::TagStates::TransferredToMe) {
+			SymbolColor = Colours::AircraftGreen.ToCOLORREF();
+
+			if (blink)
+				SymbolColor = Colours::AircraftLightGrey.ToCOLORREF();
+		}
 
 		if (State == TagConfiguration::TagStates::Redundant)
 			SymbolColor = Colours::AircraftBlue.ToCOLORREF();
