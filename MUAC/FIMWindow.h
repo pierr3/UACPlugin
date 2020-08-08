@@ -130,6 +130,9 @@ public:
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "CPDLC", mousePt, false);
 		LeftButtonOffset += ButtonRect.Size().cx;
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "MSG", mousePt, false);
+
+
+
 		LeftButtonOffset += ButtonRect.Size().cx;
 		ButtonRect = MenuBar::DrawMenuBarButton(dc, { LeftButtonOffset, TopLeftPosition.y }, "X", mousePt, false);
 		instance->AddScreenObject(FIM_CLOSE, "", ButtonRect, false, "Close FIM Window");

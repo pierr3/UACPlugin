@@ -18,6 +18,8 @@ public:
 
 	CRadarScreen * OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
 
+	void OnTimer(int Counter);
+
 protected:
 	void RegisterPlugin();
 

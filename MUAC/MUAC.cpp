@@ -39,6 +39,13 @@ CRadarScreen * MUAC::OnRadarScreenCreated(const char * sDisplayName, bool NeedRa
 	return nullptr;
 }
 
+void MUAC::OnTimer(int Counter)
+{
+	if (Counter % 5 == 0) {
+
+	}
+}
+
 void MUAC::RegisterPlugin() {
 	RegisterDisplayType(MUAC_RADAR_SCREEN_VIEW, false, true, true, true);
 }
