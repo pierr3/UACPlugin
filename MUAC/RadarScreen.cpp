@@ -1,13 +1,13 @@
 #include "stdafx.h"
 #include "RadarScreen.h"
 
-ULONG_PTR m_gdiplusToken;
+//ULONG_PTR m_gdiplusToken;
 
 RadarScreen::RadarScreen()
 {
 	// Initialize GDI+
-	GdiplusStartupInput gdiplusStartupInput;
-	GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, nullptr);
+	//GdiplusStartupInput gdiplusStartupInput;
+	//GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, nullptr);
 
 	// Initialize the Menu Bar
 	MenuButtons = MenuBar::MakeButtonData();
@@ -24,7 +24,7 @@ RadarScreen::RadarScreen()
 
 RadarScreen::~RadarScreen()
 {
-	GdiplusShutdown(m_gdiplusToken);
+	//GdiplusShutdown(m_gdiplusToken);
 }
 
 void RadarScreen::LoadAllData()
