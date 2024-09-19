@@ -79,8 +79,8 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		// One second actions
 		double t = (double)(clock() - OneSecondTimer) / ((double)CLOCKS_PER_SEC);
 		if (t >= 1) {
-			StcaInstance->OnRefresh(GetPlugIn());
-			MtcdInstance->OnRefresh(GetPlugIn());
+			//StcaInstance->OnRefresh(GetPlugIn());
+			//MtcdInstance->OnRefresh(GetPlugIn());
 			OneSecondTimer = clock();
 		}
 
