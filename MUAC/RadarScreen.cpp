@@ -582,7 +582,7 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 		MTCDWindow->Render(&dc, this, MousePoint, MtcdInstance, SepToolPairs, ButtonsPressed[BUTTON_MTCD]);
 
 		// Soft Tag deconfliction
-		for (const auto areas : SoftTagAreas)
+		/*for (const auto areas : SoftTagAreas)
 		{
 			if (areas.first == DetailedTag)
 				continue;
@@ -602,14 +602,14 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 
 			CRect OriginalArea = areas.second;
 
-			POINT newOffset = AntiOverlap::Execute(this, SoftTagAreas, TagOffsets, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);
+			/POINT newOffset = AntiOverlap::Execute(this, SoftTagAreas, TagOffsets, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);
 
 			if (newOffset.x != TagOffsets[rt.GetCallsign()].x && newOffset.y != TagOffsets[rt.GetCallsign()].y) {
 				TagOffsets[areas.first] = newOffset;
 				SoftTagAreas[areas.first] = { newOffset.x, newOffset.y, newOffset.x + OriginalArea.Size().cx, newOffset.y + OriginalArea.Size().cy };
 				RecentlyAutoMovedTags[areas.first] = clock();
 			}
-		}
+		}*/
 
 		// Tag deconfliction
 		for (const auto areas : TagAreas)
@@ -659,13 +659,13 @@ void RadarScreen::OnRefresh(HDC hDC, int Phase)
 			dc.RestoreDC(saveTest);*/
 			// END TEST
 
-			POINT newOffset = AntiOverlap::Execute(this, TagAreas, TagOffsets, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);
+			//POINT newOffset = AntiOverlap::Execute(this, TagAreas, TagOffsets, MenuBar::GetVelValueButtonPressed(ButtonsPressed), rt);
 
-			if (newOffset.x != TagOffsets[rt.GetCallsign()].x && newOffset.y != TagOffsets[rt.GetCallsign()].y) {
+			/*if (newOffset.x != TagOffsets[rt.GetCallsign()].x && newOffset.y != TagOffsets[rt.GetCallsign()].y) {
 				TagOffsets[areas.first] = newOffset;
 				TagAreas[areas.first] = { newOffset.x, newOffset.y, newOffset.x + OriginalArea.Size().cx, newOffset.y + OriginalArea.Size().cy };
 				RecentlyAutoMovedTags[areas.first] = clock();
-			}
+			}*/
 		}
 	}
 
